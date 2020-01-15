@@ -19,12 +19,6 @@ defmodule MyElixirRayTracer do
 
   @doc """
   Hello world.
-
-  ## Examples
-
-      iex> MyElixirRayTracer.hello()
-      :world
-
   """
   def hello do
     :world
