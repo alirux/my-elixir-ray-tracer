@@ -38,7 +38,7 @@ defmodule MyElixirRayTracerTest.Canvas do
 
   test "Constructing the PPM header" do
     c = canvas(1, 1)
-    ppm = canvas_to_bpm(c)
+    ppm = canvas_to_ppm(c)
     assert ppm == """
     P3
     1 1
@@ -55,7 +55,7 @@ defmodule MyElixirRayTracerTest.Canvas do
     c = write_pixel(c, 0, 0, c1)
     c = write_pixel(c, 2, 1, c2)
     c = write_pixel(c, 4, 2, c3)
-    ppm = canvas_to_bpm(c)
+    ppm = canvas_to_ppm(c)
     assert ppm == """
     P3
     5 3
@@ -68,7 +68,7 @@ defmodule MyElixirRayTracerTest.Canvas do
 
   test "Splitting long lines in PPM files" do
     c = canvas(11, 2, color(1, 0.8, 0.6))
-    ppm = canvas_to_bpm(c)
+    ppm = canvas_to_ppm(c)
     assert ppm == """
     P3
     11 2
@@ -82,9 +82,9 @@ defmodule MyElixirRayTracerTest.Canvas do
     """
   end
 
-  # test "big bpm" do
+  # test "big ppm" do
   #   c = canvas(4000, 4000)
-  #   ppm = canvas_to_bpm(c)
+  #   ppm = canvas_to_ppm(c)
   #   {:ok, file} = File.open("/tmp/test.ppm", [:write])
   #   IO.binwrite(file, ppm)
   #   File.close(file)

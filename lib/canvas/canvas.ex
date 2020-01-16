@@ -11,15 +11,30 @@ defmodule MyElixirRayTracer.Canvas do
 
   @doc """
   Creates a canvas with all pixels set to the color specified
+      0
+      |
+  0 --+--------------> x
+      |
+      |
+      |
+      |
+      V
+      y
   """
   def canvas(width, height, color \\ color(0, 0, 0)) do
     %Canvas { width: width, height: height, pixels: fill_matrix([], 0, height, width, color) }
   end
 
+  @doc """
+  Returns the color at x,y coordinates
+  """
   def pixel_at(c, x, y) do
     Enum.at(Enum.at(c.pixels, y), x)
   end
 
+  @doc """
+  Write a pixel in the canvas x,y coord with the specified color
+  """
   def write_pixel(c, x, y, color) do
     current_row = Enum.at(c.pixels, y)
     new_row = List.replace_at(current_row, x, color)
@@ -27,41 +42,54 @@ defmodule MyElixirRayTracer.Canvas do
     %Canvas { width: c.width, height: c.height, pixels: new_cols }
   end
 
-  def canvas_to_bpm(c) do
+  @doc """
+  Convert a canvas to PPM format ready to save
+  """
+  def canvas_to_ppm(c) do
     #flattened = List.flatten(c.pixels)
     """
     P3
     #{c.width} #{c.height}
     255
-    """ <> bpm_body(c.pixels, "")
+    """ <> ppm_body(c.pixels, "")
   end
 
-  # Prints a row after row
-  defp bpm_body([row | others], bpm) do
-    bpm_body(others, bpm <> bpm_body_row(row))
+  @doc """
+  Save a convas to filename
+  """
+  def save_canvas(c, filename) do
+    ppm = canvas_to_ppm(c)
+    {:ok, file} = File.open(filename, [:write])
+    IO.binwrite(file, ppm)
+    File.close(file)
   end
 
-  defp bpm_body([], bpm), do: bpm
+  # Prints a PPM row after row
+  defp ppm_body([row | others], ppm) do
+    ppm_body(others, ppm <> ppm_body_row(row))
+  end
 
-  defp bpm_body_row(pixels), do: bpm_body_row(pixels, 0, "", false)
+  defp ppm_body([], ppm), do: ppm
+
+  defp ppm_body_row(pixels), do: ppm_body_row(pixels, 0, "", false)
 
   # da due elementi
-  defp bpm_body_row([pix | tail], count, bpm, add_space) do
+  defp ppm_body_row([pix | tail], count, ppm, add_space) do
     scaled_pix = color_to_decimal(pix)
-    new_bpm_pix = "#{scaled_pix.red} #{scaled_pix.green} #{scaled_pix.blue}"
-    new_bpm_pix_space = if add_space, do: " " <> new_bpm_pix, else: new_bpm_pix
-    new_count = count + String.length(new_bpm_pix_space)
+    new_ppm_pix = "#{scaled_pix.red} #{scaled_pix.green} #{scaled_pix.blue}"
+    new_ppm_pix_space = if add_space, do: " " <> new_ppm_pix, else: new_ppm_pix
+    new_count = count + String.length(new_ppm_pix_space)
     cond do
       new_count <= 70 ->
-        bpm_body_row(tail, new_count, bpm <> new_bpm_pix_space, true)
+        ppm_body_row(tail, new_count, ppm <> new_ppm_pix_space, true)
       new_count > 70 ->
-        bpm_body_row(tail, String.length(new_bpm_pix), bpm <> "\n" <> new_bpm_pix, true)
+        ppm_body_row(tail, String.length(new_ppm_pix), ppm <> "\n" <> new_ppm_pix, true)
     end
 
   end
 
   # nessun elemento
-  defp bpm_body_row([], _, bpm, _), do: bpm <> "\n"
+  defp ppm_body_row([], _, ppm, _), do: ppm <> "\n"
 
   defp fill_matrix(m, curr, height, width, color) when curr < height - 1 do
     fill_matrix([fill([], 0, width - 1, color)] ++ m, curr + 1, height, width, color)
