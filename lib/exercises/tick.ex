@@ -7,6 +7,9 @@ defmodule MyElixirRayTracer.Exercises.Tick do
   alias MyElixirRayTracer.Exercises.Environment
   #alias MyElixirRayTracer.Tuple
   alias Mix.Shell.IO, as: Shell
+  alias MyElixirRayTracer.Canvas
+  import MyElixirRayTracer.Canvas
+  import MyElixirRayTracer.Color
 
   @doc """
   ### Calculate the new projectile after a "tick" of time.
@@ -28,14 +31,19 @@ defmodule MyElixirRayTracer.Exercises.Tick do
   @doc """
   Fire the projectile in the environment and see when the projectile hit the ground
   """
-  def fire(env, proj) do
-    Shell.info("p=[#{proj.position.x}, #{proj.position.y}, #{proj.position.z}, #{proj.position.w}], v=[#{proj.velocity.x}, #{proj.velocity.y}, #{proj.velocity.z}, #{proj.velocity.w}]")
+  def fire(env, proj, canvas) do
+    cx = min(round(proj.position.x), canvas.width - 1)
+    cy = max(min(canvas.height - round(proj.position.y), canvas.height - 1), 0)
+    Shell.info("Canvas=[#{cx}, #{cy}] p=[#{proj.position.x}, #{proj.position.y}, #{proj.position.z}, #{proj.position.w}], v=[#{proj.velocity.x}, #{proj.velocity.y}, #{proj.velocity.z}, #{proj.velocity.w}]")
+    new_canvas = write_pixel(canvas, cx, cy, color(0.5, 0.5, 0.5))
     if proj.position.y > 0 do
       # The projectile is in flight: see what happens in the next tick
       r = tick(env, proj)
-      fire(env, r)
+      fire(env, r, new_canvas)
     else
       # The projectile hit the ground (y <= 0)
+      Shell.info("Saving canvas")
+      save_canvas(canvas, "/tmp/pojectile_trajectory.ppm")
       proj
     end
   end
@@ -44,9 +52,9 @@ defmodule MyElixirRayTracer.Exercises.Tick do
   Fire a projectile
   """
   def execute do
-    env = %Environment { gravity: vector(0, -0.1, 0), wind: vector(-0.01, 0, 0)}
-    proj = %Projectile { position: point(0, 1, 0), velocity: normalize(vector(1, 1, 0))}
+    env = %Environment { gravity: vector(0, -0.8, 0), wind: vector(-0.1, 0, 0)}
+    proj = %Projectile { position: point(0, 1, 0), velocity: MyElixirRayTracer.Tuple.multiply(normalize(vector(1, 0.8, 0)), 17) }
 
-    fire(env, proj)
+    fire(env, proj, canvas(400, 100, color(1, 1, 1)))
   end
 end
