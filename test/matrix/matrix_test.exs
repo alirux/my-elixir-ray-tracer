@@ -1,0 +1,57 @@
+defmodule MyElixirRayTracerTestr.Matrix do
+  use ExUnit.Case
+  doctest(MyElixirRayTracer.Matrix)
+
+  import MyElixirRayTracer.Matrix
+
+  test "Constructing and inspecting a 4x4 matrix" do
+    m = matrix4x4(1, 2, 3, 4, 5.5, 6.5, 7.5, 8.5, 9, 10, 11, 12, 13.5, 14.5, 15.5, 16.5)
+    assert m[0.0] == 1
+    assert m[0.3] == 4
+    assert m[1.0] == 5.5
+    assert m[1.2] == 7.5
+    assert m[2.2] == 11
+    assert m[3.0] == 13.5
+    assert m[3.2] == 15.5
+  end
+
+  test "A 2x2 matrix ought to be representable" do
+    m = matrix2x2(-3, 5, 1, -2)
+    assert m[0.0] == -3
+    assert m[0.1] == 5
+    assert m[1.0] == 1
+    assert m[1.1] == -2
+  end
+
+  test "A 3x3 matrix ought to be representable" do
+    m = matrix3x3(-3, 5, 0, 1, -2, -7, 0, 1, 1)
+    assert m[0.0] == -3
+    assert m[1.1] == -2
+    assert m[2.2] == 1
+  end
+
+  test "Matrix equality with identical matrices" do
+    m1 = matrix4x4(1, 2, 3, 4, 5.5, 6.5, 7.5, 8.5, 9, 10, 11, 12, 13.5, 14.5, 15.5, 16.5)
+    m2 = matrix4x4(1, 2, 3, 4, 5.5, 6.5, 7.5, 8.5, 9, 10, 11, 12, 13.5, 14.5, 15.5, 16.5)
+    assert matrix_equals(m1, m2) == [ equal: true ]
+  end
+
+  test "Matrix equality with different matrices (first elements differ)" do
+    m1 = matrix4x4(1, 2, 3, 4, 5.5, 6.5, 7.5, 8.5, 9, 10, 11, 12, 13.5, 14.5, 15.5, 16.5)
+    m2 = matrix4x4(10, 2, 3, 4, 5.5, 6.5, 7.5, 8.5, 9, 10, 11, 12, 13.5, 14.5, 15.5, 16.5)
+    assert matrix_equals(m1, m2) == [ equal: false, row: 0, col: 0, idx: 0.0, val1: 1, val2: 10 ]
+  end
+
+  test "Matrix equality with different matrices (last column elemts differ)" do
+    m1 = matrix4x4(1, 2, 3, 4, 5.5, 6.5, 7.5, 8.5, 9, 10, 11, 12, 13.5, 14.5, 15.5, 16.5)
+    m2 = matrix4x4(1, 2, 3, 400, 5.5, 6.5, 7.5, 8.5, 9, 10, 11, 12, 13.5, 14.5, 15.5, 16.5)
+    assert matrix_equals(m1, m2) == [ equal: false, row: 0, col: 3, idx: 0.3, val1: 4, val2: 400 ]
+  end
+
+  test "Matrix equality with different matrices (last element of the matrix differ)" do
+    m1 = matrix4x4(1, 2, 3, 4, 5.5, 6.5, 7.5, 8.5, 9, 10, 11, 12, 13.5, 14.5, 15.5, 16.5)
+    m2 = matrix4x4(1, 2, 3, 4, 5.5, 6.5, 7.5, 8.5, 9, 10, 11, 12, 13.5, 14.5, 15.5, 1600.5)
+    assert matrix_equals(m1, m2) == [ equal: false, row: 3, col: 3, idx: 3.3, val1: 16.5, val2: 1600.5 ]
+  end
+
+end
