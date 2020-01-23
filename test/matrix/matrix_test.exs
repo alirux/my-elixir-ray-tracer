@@ -54,4 +54,22 @@ defmodule MyElixirRayTracerTestr.Matrix do
     assert matrix_equals(m1, m2) == [ equal: false, row: 3, col: 3, idx: 3.3, val1: 16.5, val2: 1600.5 ]
   end
 
+  test "Multiplying two matrices" do
+    m1 = matrix4x4(1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4, 3, 2)
+    m2 = matrix4x4(-2, 1, 2, 3, 3, 2, 1, -1, 4, 3, 6, 5, 1, 2, 7, 8)
+    p = matrix4x4(20, 22, 50, 48, 44, 54, 114, 108, 40, 58, 110, 102, 16, 26, 46, 42)
+    { :ok, mult } = matrix_multiply(m1, m2)
+    res = matrix_equals(mult, p)
+    assert res == [ equal: true ]
+  end
+
+  test "A matrix multiplied by a tuple" do
+    m1 = matrix4x4(1, 2, 3, 4, 2, 4, 4, 2, 8, 6, 4, 1, 0, 0, 0, 1)
+    t2 = matrix4x1(1, 2, 3, 1)
+    p = matrix4x1(18, 24, 33, 1)
+    { :ok, mult } = matrix_multiply(m1, t2)
+    res = matrix_equals(mult, p)
+    assert res == [ equal: true ]
+  end
+
 end

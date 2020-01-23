@@ -2,8 +2,13 @@ defmodule MyElixirRayTracer.Matrix do
 
   import MyElixirRayTracer.Common
 
+  # Calculate the float index
+  defp index(r, c) do
+    r + c/10.0
+  end
+
   @doc """
-  Difines a 4x4 matrix
+  Defines a 4x4 matrix
   """
   def matrix4x4(m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23, m30, m31, m32, m33) do
     %{ "r" => 4, "c" => 4,
@@ -15,7 +20,7 @@ defmodule MyElixirRayTracer.Matrix do
   end
 
   @doc """
-  Difines a 2x2 matrix
+  Defines a 2x2 matrix
   """
   def matrix2x2(m00, m01, m10, m11) do
     %{ "r" => 2, "c" => 2,
@@ -25,13 +30,25 @@ defmodule MyElixirRayTracer.Matrix do
   end
 
   @doc """
-  Difines a 3x3 matrix
+  Defines a 3x3 matrix
   """
   def matrix3x3(m00, m01, m02, m10, m11, m12, m20, m21, m22) do
     %{ "r" => 3, "c" => 3,
        0.0 => m00, 0.1 => m01, 0.2 => m02,
        1.0 => m10, 1.1 => m11, 1.2 => m12,
        2.0 => m20, 2.1 => m21, 2.2 => m22
+     }
+  end
+
+  @doc """
+  Defines a 4x1 matrix
+  """
+  def matrix4x1(m00, m10, m20, m30) do
+    %{ "r" => 4, "c" => 1,
+       0.0 => m00,
+       1.0 => m10,
+       2.0 => m20,
+       3.0 => m30
      }
   end
 
@@ -77,6 +94,39 @@ defmodule MyElixirRayTracer.Matrix do
       # Elements are Different, close the recursion
       #Shell.info("Different: curr=(#{r}, #{c}) next=(#{new_r}, #{new_c})")
       [ equal: false, row: r, col: c, idx: idx, val1: m1[idx], val2: m2[idx] ]
+    end
+  end
+
+  @doc """
+  Multiply row x col two matrixes
+  """
+  def matrix_multiply(m1, m2) do
+    if m1["c"] != m2["r"], do: { :error, "Number of columns in m1 must be equal to number of rows of m2"}
+    { :ok, matrix_multiply_rc(m1, m2, 0, 0, 0, 0, %{ "r" => m1["r"], "c" => m2["c"]}, 0)}
+  end
+
+  defp matrix_multiply_rc(m1, m2, r1, c1, r2, c2, res, tot) do
+    idx1 = index(r1, c1)
+    idx2 = index(r2, c2)
+    #Shell.info("(#{r1}, #{c1}) (#{r2}, #{c2}) #{idx1} #{idx2} #{tot}")
+    f = m1[idx1] * m2[idx2]
+    #Shell.info("(#{r1}, #{c1}) (#{r2}, #{c2}) #{idx1} #{idx2} #{tot + f}")
+    cond do
+      # STOP condition, full multiplication was completed: last m1 row and row, last m2 row and col. Add the last element and return the map
+      r1 == m1["r"] - 1 and c1 == m1["c"] - 1 and r2 == m2["r"] - 1 and c2 == m2["c"] -1 -> Map.put(res, index(r1, c2), tot + f)
+
+      # a single row x col product is running => same m1 row, next m2 col; same m2 col, next m2 row => accumulate the tot
+      r1 <= m1["r"] - 1 and c1 < m1["c"] - 1 -> matrix_multiply_rc(m1, m2, r1, c1 + 1, r2 + 1, c2, res, tot + f)
+
+      # The loop on a single m1 row is finished: a single m1 row was multiplied with a single m2 col
+      # Continue until the last m2 col is reached (i.e c2 < m2["c"] - 1)
+      # Last m1 col, row x col completed => same m1 row, m1 col reset to zero; reset m2 row to zero, next m2 col => add the new element and reset the tot
+      r1 <= m1["r"] - 1 and c1 == m1["c"] - 1 and c2 < m2["c"] - 1 -> matrix_multiply_rc(m1, m2, r1, 0, 0, c2 + 1, Map.put(res, index(r1, c2), tot + f), 0)
+
+      # The m2 col is the last one => a single m1 row was multiplied for ALL the m2 cols
+      # Last m2 col, row x col completed => next m1 row, m1 col reset to zero; m2 row reset to zero, m2 col reset to zero => add the new element and reset the tot
+      c2 == m2["c"] - 1 -> matrix_multiply_rc(m1, m2, r1 + 1, 0, 0, 0, Map.put(res, index(r1, c2), tot + f), 0)
+
     end
   end
 
