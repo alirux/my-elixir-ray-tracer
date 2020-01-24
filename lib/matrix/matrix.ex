@@ -8,6 +8,18 @@ defmodule MyElixirRayTracer.Matrix do
   end
 
   @doc """
+  Defines a 4x4 identity matrix
+  """
+  def identity_matrix4x4() do
+    %{ "r" => 4, "c" => 4,
+       0.0 => 1, 0.1 => 0, 0.2 => 0, 0.3 => 0,
+       1.0 => 0, 1.1 => 1, 1.2 => 0, 1.3 => 0,
+       2.0 => 0, 2.1 => 0, 2.2 => 1, 2.3 => 0,
+       3.0 => 0, 3.1 => 0, 3.2 => 0, 3.3 => 1,
+     }
+  end
+
+  @doc """
   Defines a 4x4 matrix
   """
   def matrix4x4(m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23, m30, m31, m32, m33) do

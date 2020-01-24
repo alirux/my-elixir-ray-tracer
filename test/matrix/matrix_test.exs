@@ -72,4 +72,22 @@ defmodule MyElixirRayTracerTestr.Matrix do
     assert res == [ equal: true ]
   end
 
+  test "Multiplying a matrix by the identity matrix" do
+    m1 = matrix4x4(0, 1, 2, 4, 1, 2, 4, 8, 2, 4, 8, 16, 4, 8, 16, 32)
+    identity = identity_matrix4x4()
+    { :ok, mult } = matrix_multiply(m1, identity)
+    # the result is the same original matrix
+    res = matrix_equals(mult, m1)
+    assert res == [ equal: true ]
+  end
+
+  test "Multiplying the identity matrix by a tuple" do
+    m1 = identity_matrix4x4()
+    t2 = matrix4x1(1, 2, 3, 1)
+    { :ok, mult } = matrix_multiply(m1, t2)
+    # the result is the same original tuple
+    res = matrix_equals(mult, t2)
+    assert res == [ equal: true ]
+  end
+
 end
