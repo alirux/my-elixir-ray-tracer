@@ -142,4 +142,24 @@ defmodule MyElixirRayTracer.Matrix do
     end
   end
 
+  @doc """
+  Transpose a matrix: swap the columns into rows
+  Valid only for square matrices
+  """
+  def matrix_transpose(m) do
+    # Two piped operations:
+    # 1) Enum.map return a list of {k, v} tuples
+    # 2) Map.new transform a list of {k, v} tuples into a map of k => v
+    Enum.map(m, fn
+      {idx, val} when is_float(idx) ->
+        row = trunc(idx)
+        col = round((idx - row) * 10)
+        { index(col, row), val }
+      # To generalize to non square matrices, swap c with r
+      {"c", val} -> {"c", val}
+      {"r", val} -> {"r", val}
+    end) |> Map.new()
+    #Mix.Shell.IO.info("#{t}")
+  end
+
 end
