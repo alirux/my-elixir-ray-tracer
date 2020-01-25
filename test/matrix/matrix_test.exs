@@ -90,4 +90,20 @@ defmodule MyElixirRayTracerTestr.Matrix do
     assert res == [ equal: true ]
   end
 
+  test "Transposing a matrix" do
+    m = matrix4x4(0, 9, 3, 0,
+                  9, 8, 0, 8,
+                  1, 8, 5, 3,
+                  0, 0, 5, 8)
+    t = matrix4x4(0, 9, 1, 0,
+                  9, 8, 8, 0,
+                  3, 0, 5, 5,
+                  0, 8, 3, 8)
+    assert matrix_equals(matrix_transpose(m), t) == [ equal: true ]
+  end
+
+  test "Transposing the identity matrix" do
+    assert matrix_equals(matrix_transpose(identity_matrix4x4()), identity_matrix4x4()) == [ equal: true ]
+  end
+
 end
