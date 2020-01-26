@@ -11,7 +11,7 @@ defmodule MyElixirRayTracer.Matrix do
   Defines a 4x4 identity matrix
   """
   def identity_matrix4x4() do
-    %{ "r" => 4, "c" => 4,
+    %{ :nrows => 4, :ncols => 4,
        0.0 => 1, 0.1 => 0, 0.2 => 0, 0.3 => 0,
        1.0 => 0, 1.1 => 1, 1.2 => 0, 1.3 => 0,
        2.0 => 0, 2.1 => 0, 2.2 => 1, 2.3 => 0,
@@ -23,7 +23,7 @@ defmodule MyElixirRayTracer.Matrix do
   Defines a 4x4 matrix
   """
   def matrix4x4(m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23, m30, m31, m32, m33) do
-    %{ "r" => 4, "c" => 4,
+    %{ :nrows => 4, :ncols => 4,
        0.0 => m00, 0.1 => m01, 0.2 => m02, 0.3 => m03,
        1.0 => m10, 1.1 => m11, 1.2 => m12, 1.3 => m13,
        2.0 => m20, 2.1 => m21, 2.2 => m22, 2.3 => m23,
@@ -35,7 +35,7 @@ defmodule MyElixirRayTracer.Matrix do
   Defines a 2x2 matrix
   """
   def matrix2x2(m00, m01, m10, m11) do
-    %{ "r" => 2, "c" => 2,
+    %{ :nrows => 2, :ncols => 2,
        0.0 => m00, 0.1 => m01,
        1.0 => m10, 1.1 => m11
      }
@@ -45,7 +45,7 @@ defmodule MyElixirRayTracer.Matrix do
   Defines a 3x3 matrix
   """
   def matrix3x3(m00, m01, m02, m10, m11, m12, m20, m21, m22) do
-    %{ "r" => 3, "c" => 3,
+    %{ :nrows => 3, :ncols => 3,
        0.0 => m00, 0.1 => m01, 0.2 => m02,
        1.0 => m10, 1.1 => m11, 1.2 => m12,
        2.0 => m20, 2.1 => m21, 2.2 => m22
@@ -56,7 +56,7 @@ defmodule MyElixirRayTracer.Matrix do
   Defines a 4x1 matrix
   """
   def matrix4x1(m00, m10, m20, m30) do
-    %{ "r" => 4, "c" => 1,
+    %{ :nrows => 4, :ncols => 1,
        0.0 => m00,
        1.0 => m10,
        2.0 => m20,
@@ -65,7 +65,7 @@ defmodule MyElixirRayTracer.Matrix do
   end
 
   def matrix_equals(m1, m2) do
-    if m1["r"] != m2["r"] or m2["c"] != m2["c"] do
+    if m1[:nrows] != m2[:nrows] or m2[:ncols] != m2[:ncols] do
       false
     else
       matrix_equals(m1, m2, 0, 0)
@@ -77,11 +77,11 @@ defmodule MyElixirRayTracer.Matrix do
 
   defp matrix_equals(m1, m2, r, c) do
     # next indexes
-    { new_r, new_c } = if c < m1["c"] - 1 do
+    { new_r, new_c } = if c < m1[:ncols] - 1 do
       # same row, next column
       { r, c + 1 }
     else
-      if r < m1["r"] - 1 do
+      if r < m1[:nrows] - 1 do
         # next row, first column
         { r + 1, 0 }
       else
@@ -96,7 +96,7 @@ defmodule MyElixirRayTracer.Matrix do
     if equal(m1[idx], m2[idx]) do
       # Current elements are equal so let's analyze the next element
       # Check if all the elements are evaluated
-      if new_r < m1["r"] do
+      if new_r < m1[:nrows] do
         matrix_equals(m1, m2, new_r, new_c)
       else
         # All the previous elements were equal, so the two matrixes are equal
@@ -113,8 +113,8 @@ defmodule MyElixirRayTracer.Matrix do
   Multiply row x col two matrixes
   """
   def matrix_multiply(m1, m2) do
-    if m1["c"] != m2["r"], do: { :error, "Number of columns in m1 must be equal to number of rows of m2"}
-    { :ok, matrix_multiply_rc(m1, m2, 0, 0, 0, 0, %{ "r" => m1["r"], "c" => m2["c"]}, 0)}
+    if m1[:ncols] != m2[:nrows], do: { :error, "Number of columns in m1 must be equal to number of rows of m2"}
+    { :ok, matrix_multiply_rc(m1, m2, 0, 0, 0, 0, %{ :nrows => m1[:nrows], :ncols => m2[:ncols]}, 0)}
   end
 
   defp matrix_multiply_rc(m1, m2, r1, c1, r2, c2, res, tot) do
@@ -125,19 +125,19 @@ defmodule MyElixirRayTracer.Matrix do
     #Shell.info("(#{r1}, #{c1}) (#{r2}, #{c2}) #{idx1} #{idx2} #{tot + f}")
     cond do
       # STOP condition, full multiplication was completed: last m1 row and row, last m2 row and col. Add the last element and return the map
-      r1 == m1["r"] - 1 and c1 == m1["c"] - 1 and r2 == m2["r"] - 1 and c2 == m2["c"] -1 -> Map.put(res, index(r1, c2), tot + f)
+      r1 == m1[:nrows] - 1 and c1 == m1[:ncols] - 1 and r2 == m2[:nrows] - 1 and c2 == m2[:ncols] -1 -> Map.put(res, index(r1, c2), tot + f)
 
       # a single row x col product is running => same m1 row, next m2 col; same m2 col, next m2 row => accumulate the tot
-      r1 <= m1["r"] - 1 and c1 < m1["c"] - 1 -> matrix_multiply_rc(m1, m2, r1, c1 + 1, r2 + 1, c2, res, tot + f)
+      r1 <= m1[:nrows] - 1 and c1 < m1[:ncols] - 1 -> matrix_multiply_rc(m1, m2, r1, c1 + 1, r2 + 1, c2, res, tot + f)
 
       # The loop on a single m1 row is finished: a single m1 row was multiplied with a single m2 col
-      # Continue until the last m2 col is reached (i.e c2 < m2["c"] - 1)
+      # Continue until the last m2 col is reached (i.e c2 < m2[:ncols] - 1)
       # Last m1 col, row x col completed => same m1 row, m1 col reset to zero; reset m2 row to zero, next m2 col => add the new element and reset the tot
-      r1 <= m1["r"] - 1 and c1 == m1["c"] - 1 and c2 < m2["c"] - 1 -> matrix_multiply_rc(m1, m2, r1, 0, 0, c2 + 1, Map.put(res, index(r1, c2), tot + f), 0)
+      r1 <= m1[:nrows] - 1 and c1 == m1[:ncols] - 1 and c2 < m2[:ncols] - 1 -> matrix_multiply_rc(m1, m2, r1, 0, 0, c2 + 1, Map.put(res, index(r1, c2), tot + f), 0)
 
       # The m2 col is the last one => a single m1 row was multiplied for ALL the m2 cols
       # Last m2 col, row x col completed => next m1 row, m1 col reset to zero; m2 row reset to zero, m2 col reset to zero => add the new element and reset the tot
-      c2 == m2["c"] - 1 -> matrix_multiply_rc(m1, m2, r1 + 1, 0, 0, 0, Map.put(res, index(r1, c2), tot + f), 0)
+      c2 == m2[:ncols] - 1 -> matrix_multiply_rc(m1, m2, r1 + 1, 0, 0, 0, Map.put(res, index(r1, c2), tot + f), 0)
 
     end
   end
@@ -157,8 +157,8 @@ defmodule MyElixirRayTracer.Matrix do
         { index(col, row), val }
       # Swap c with r: the order doesn't matter bc Elixir is creating e new list.
       # Enum.map doesn't mute elements overwriting the old value
-      {"c", val} -> {"r", val}
-      {"r", val} -> {"c", val}
+      {:ncols, val} -> {:nrows, val}
+      {:nrows, val} -> {:ncols, val}
     end) |> Map.new()
     #Mix.Shell.IO.info("#{t}")
   end

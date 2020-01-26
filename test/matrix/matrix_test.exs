@@ -108,7 +108,7 @@ defmodule MyElixirRayTracerTestr.Matrix do
 
   test "Transposing a non square matrix" do
     m = matrix4x1(0, 9, 3, 1)
-    t = %{"r" => 1, "c" => 4, 0.0 => 0, 0.1 => 9, 0.2 => 3, 0.3 => 1 }
+    t = %{:nrows => 1, :ncols => 4, 0.0 => 0, 0.1 => 9, 0.2 => 3, 0.3 => 1 }
     assert matrix_equals(matrix_transpose(m), t) == [ equal: true ]
   end
 
