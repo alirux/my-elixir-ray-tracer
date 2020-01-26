@@ -112,4 +112,9 @@ defmodule MyElixirRayTracerTestr.Matrix do
     assert matrix_equals(matrix_transpose(m), t) == [ equal: true ]
   end
 
+  test "Calculating the determinant of a 2x2 matrix" do
+    m = matrix2x2(1, 5, -3, 2)
+    assert matrix_2x2determinant(m) == 17
+  end
+
 end

@@ -75,6 +75,7 @@ defmodule MyElixirRayTracer.Matrix do
 
   #alias Mix.Shell.IO, as: Shell
 
+  # A matrix is a map: can we use Map or Enum modules?
   defp matrix_equals(m1, m2, r, c) do
     # next indexes
     { new_r, new_c } = if c < m1[:ncols] - 1 do
@@ -161,6 +162,13 @@ defmodule MyElixirRayTracer.Matrix do
       {:nrows, val} -> {:ncols, val}
     end) |> Map.new()
     #Mix.Shell.IO.info("#{t}")
+  end
+
+  @doc """
+  Calculate the determinant of a 2x2 matrix
+  """
+  def matrix_2x2determinant(m) do
+    m[0.0] * m[1.1] - m[1.0] * m[0.1]
   end
 
 end
