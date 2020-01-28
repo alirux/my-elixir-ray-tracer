@@ -54,6 +54,12 @@ defmodule MyElixirRayTracerTestr.Matrix do
     assert matrix_equals(m1, m2) == [ equal: false, row: 3, col: 3, idx: 3.3, val1: 16.5, val2: 1600.5 ]
   end
 
+  test "Matrix equality with different matrices (different dimensions)" do
+    m1 = matrix3x3(1, 2, 3, 4, 5.5, 6.5, 7.5, 8.5, 9)
+    m2 = matrix4x4(1, 2, 3, 4, 5.5, 6.5, 7.5, 8.5, 9, 10, 11, 12, 13.5, 14.5, 15.5, 1600.5)
+    assert matrix_equals(m1, m2) == [ equal: false ]
+  end
+
   test "Multiplying two matrices" do
     m1 = matrix4x4(1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4, 3, 2)
     m2 = matrix4x4(-2, 1, 2, 3, 3, 2, 1, -1, 4, 3, 6, 5, 1, 2, 7, 8)
@@ -115,6 +121,46 @@ defmodule MyElixirRayTracerTestr.Matrix do
   test "Calculating the determinant of a 2x2 matrix" do
     m = matrix2x2(1, 5, -3, 2)
     assert matrix_2x2determinant(m) == 17
+  end
+
+  test "A submatrix of a 3x3 matrix is a 2x2 matrix (0,2)" do
+    m = matrix3x3(1, 5, 0, -3, 2, 7, 0, 6, -3)
+    sub = matrix2x2(-3, 2, 0, 6)
+    res = submatrix(m, 0, 2)
+    assert matrix_equals(res, sub) ==  [ equal: true ]
+    assert res[:nrows] == sub[:nrows]
+    assert res[:ncols] == sub[:ncols]
+  end
+
+  test "A submatrix of a 3x3 matrix is a 2x2 matrix (0,0)" do
+    m = matrix3x3(1, 5, 0,
+                  -3, 2, 7,
+                  0, 6, -3)
+    sub = matrix2x2(2, 7, 6, -3)
+    res = submatrix(m, 0, 0)
+    assert matrix_equals(res, sub) ==  [ equal: true ]
+    assert res[:nrows] == sub[:nrows]
+    assert res[:ncols] == sub[:ncols]
+  end
+
+  test "A submatrix of a 3x3 matrix is a 2x2 matrix (2,2)" do
+    m = matrix3x3(1, 5, 0,
+                  -3, 2, 7,
+                  0, 6, -3)
+    sub = matrix2x2(1, 5, -3, 2)
+    res = submatrix(m, 2, 2)
+    assert matrix_equals(res, sub) ==  [ equal: true ]
+    assert res[:nrows] == sub[:nrows]
+    assert res[:ncols] == sub[:ncols]
+  end
+
+  test "A submatrix of a 4x4 matrix is a 3x3 matrix" do
+    m = matrix4x4(-6, 1, 1, 6, -8, 5, 8, 6, -1, 0, 8, 2, -7, 1, -1, 1)
+    sub = matrix3x3(-6, 1, 6, -8, 8, 6, -7, -1, 1)
+    res = submatrix(m, 2, 1)
+    assert matrix_equals(res, sub) ==  [ equal: true ]
+    assert res[:nrows] == sub[:nrows]
+    assert res[:ncols] == sub[:ncols]
   end
 
 end
