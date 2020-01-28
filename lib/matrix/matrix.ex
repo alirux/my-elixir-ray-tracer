@@ -7,6 +7,17 @@ defmodule MyElixirRayTracer.Matrix do
     r + c/10.0
   end
 
+  # Extract the row from the idx
+  defp idx_to_row(idx) do
+    trunc(idx)
+  end
+
+  # Extract the col from the idx
+  defp idx_to_col(idx) do
+    row = idx_to_row(idx)
+    round((idx - row) * 10)
+  end
+
   @doc """
   Defines a 4x4 identity matrix
   """
@@ -66,7 +77,7 @@ defmodule MyElixirRayTracer.Matrix do
 
   def matrix_equals(m1, m2) do
     if m1[:nrows] != m2[:nrows] or m2[:ncols] != m2[:ncols] do
-      false
+      [ equal: false ]
     else
       matrix_equals(m1, m2, 0, 0)
     end
@@ -153,8 +164,8 @@ defmodule MyElixirRayTracer.Matrix do
     Enum.map(m, fn
       # Swap col with row
       {idx, val} when is_float(idx) ->
-        row = trunc(idx)
-        col = round((idx - row) * 10)
+        row = idx_to_row(idx)
+        col = idx_to_col(idx)
         { index(col, row), val }
       # Swap c with r: the order doesn't matter bc Elixir is creating e new list.
       # Enum.map doesn't mute elements overwriting the old value
@@ -169,6 +180,41 @@ defmodule MyElixirRayTracer.Matrix do
   """
   def matrix_2x2determinant(m) do
     m[0.0] * m[1.1] - m[1.0] * m[0.1]
+  end
+
+  def submatrix(m, row, col) do
+    t = Enum.reject(m, fn { k, _v } ->
+      # Remove the row and the col
+      #Mix.Shell.IO.info("#{k}-#{row}")
+      cond do
+        k == :ncols -> false
+        k == :nrows -> false
+        row == trunc(k) -> true
+        col == round((k - trunc(k)) * 10) -> true
+        true -> false
+      end
+    end)
+    |> Enum.map(fn { idx, v } ->
+      # Correct the other indexes
+      if is_float(idx) do
+        curr_row = idx_to_row(idx)
+        # if the current row is > of the removed row, then the row index must be decremented
+        new_row = if curr_row < row, do: curr_row, else: curr_row - 1
+        curr_col = idx_to_col(idx)
+        # same for a col
+        new_col = if curr_col < col, do: curr_col, else: curr_col - 1
+        # The new index is:
+        new_idx = index(new_row, new_col)
+        #Mix.Shell.IO.info("#{curr_row},#{curr_col} #{new_row},#{new_col} #{new_idx}")
+        { new_idx, v }
+      else
+        # Decrement the :nrows and :ncols
+        { idx, v - 1 }
+      end
+    end)
+    |> Map.new()
+    #Mix.Shell.IO.info("#{t}")
+    t
   end
 
 end
