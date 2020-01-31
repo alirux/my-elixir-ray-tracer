@@ -120,7 +120,7 @@ defmodule MyElixirRayTracerTestr.Matrix do
 
   test "Calculating the determinant of a 2x2 matrix" do
     m = matrix2x2(1, 5, -3, 2)
-    assert matrix_2x2determinant(m) == 17
+    assert matrix_determinant(m) == 17
   end
 
   test "A submatrix of a 3x3 matrix is a 2x2 matrix (0,2)" do
@@ -161,6 +161,28 @@ defmodule MyElixirRayTracerTestr.Matrix do
     assert matrix_equals(res, sub) ==  [ equal: true ]
     assert res[:nrows] == sub[:nrows]
     assert res[:ncols] == sub[:ncols]
+  end
+
+  # A minor of an alement at (row,col) of a matrix, is the determinant of the submatrix (row,col)
+  test "Calculating a minor of a 3x3 matrix" do
+    m = matrix3x3(3, 5, 0, 2, -1, -7, 6, -1, 5)
+    assert matrix_minor(m, 1, 0) == 25
+  end
+
+  test "Calculating a cofactor of a 3x3 matrix" do
+    m = matrix3x3(3, 5, 0, 2, -1, -7, 6, -1, 5)
+    assert matrix_cofactor(m, 0, 0) == -12
+    assert matrix_cofactor(m, 1, 0) == -25
+  end
+
+  test "Calculating the determinant of a 3x3 matrix" do
+    m = matrix3x3(1, 2, 6, -5, 8, -4, 2, 6, 4)
+    assert matrix_determinant(m) == -196
+  end
+
+  test "Calculating the determinant of a 4x4 matrix" do
+    m = matrix4x4(-2, -8, 3, 5, -3, 1, 7, 3, 1, 2, -9, 6, -6, 7, 7, -9)
+    assert matrix_determinant(m) == -4071
   end
 
 end
