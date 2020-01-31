@@ -1,6 +1,7 @@
 defmodule MyElixirRayTracer.Matrix do
 
   import MyElixirRayTracer.Common
+  require Integer
 
   # Calculate the float index
   defp index(r, c) do
@@ -176,10 +177,32 @@ defmodule MyElixirRayTracer.Matrix do
   end
 
   @doc """
-  Calculate the determinant of a 2x2 matrix
+  Calculate the determinant of a matrix
   """
-  def matrix_2x2determinant(m) do
+  # The stop clause: we know how to calculate a determinant of a 2x2 matrix
+  def matrix_determinant(m = %{:ncols => 2, :nrows => 2}) do
     m[0.0] * m[1.1] - m[1.0] * m[0.1]
+  end
+  # For all the other cases we need to start the recursion
+  def matrix_determinant(m) do
+    matrix_determinant(m, 0, 0, 0)
+  end
+  # Calculate a single factor (row,col), accumulate the determinant d
+  # and stop when we reach the last column of the row
+  # The determinant d is calculated step by step incrementally until we reach the last column
+  defp matrix_determinant(m, row, col, d) do
+    # Stop clause for the first recursion: Is the last column reached and passed?
+    if col < m[:ncols] do
+      # In the middle of a row (last column included): calc and accumulate the determinant
+      # Calculating the cofactor starts a second recursion to decompose further (if necessary) the matrix
+      # Infact, the cofactor function in turn call the matrix determinant on a smaller matrix until we reach a 2x2 matrix
+      new_d = d + m[index(row, col)] * matrix_cofactor(m, row, col)
+      # First recursion to scan a whole row: calc the factor for the next col
+      matrix_determinant(m, row, col + 1, new_d)
+    else
+      # Last column of the row is passed: stop the first recursion on a row and return the determinant
+      d
+    end
   end
 
   def submatrix(m, row, col) do
@@ -216,5 +239,25 @@ defmodule MyElixirRayTracer.Matrix do
     #Mix.Shell.IO.info("#{t}")
     t
   end
+
+  @doc """
+  A minor of an alement at (row,col) of a matrix, is the determinant of the submatrix (row,col)
+
+  Implemented only for 3x3 matrix
+  """
+  def matrix_minor(m, row, col) do
+    sub = submatrix(m, row, col)
+    matrix_determinant(sub)
+  end
+
+  @doc """
+  A cofactor (row,col) is a minor (row,col) of a matrix with the sign changed if row+col is an odd number
+  """
+  def matrix_cofactor(m, row, col) do
+    minor = matrix_minor(m, row, col)
+    if Integer.is_odd(row + col), do: -minor, else: minor
+  end
+
+
 
 end
