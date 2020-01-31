@@ -258,6 +258,41 @@ defmodule MyElixirRayTracer.Matrix do
     if Integer.is_odd(row + col), do: -minor, else: minor
   end
 
+  @doc """
+  A matrix is invertible if its determinant is not equal to zero
+  """
+  def matrix_is_invertible?(m) do
+    matrix_determinant(m) != 0
+  end
 
+  @doc """
+  The inverse of a matrix
+  """
+  def matrix_inverse(m) do
+    d = matrix_determinant(m)
+    if d == 0 do
+      { :error, "Matrix is not invertible" }
+    else
+      { :ok, matrix_inverse(m, d) }
+    end
+  end
+
+  defp matrix_inverse(m, d) do
+    Enum.map(m, fn { idx, v } ->
+      if is_float(idx) do
+        # Index for a value
+        curr_row = idx_to_row(idx)
+        curr_col = idx_to_col(idx)
+        # Make the transpose
+        new_idx = index(curr_col, curr_row)
+        # Calculate the cofactor and divide by determinant
+        { new_idx, matrix_cofactor(m, curr_row, curr_col) / d }
+      else
+        # :nrows and :ncols remain the same
+        { idx, v }
+      end
+    end)
+    |> Map.new()
+  end
 
 end
