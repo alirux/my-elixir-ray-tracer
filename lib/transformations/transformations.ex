@@ -44,4 +44,18 @@ defmodule MyElixirRayTracer.Transformations do
     x_rotated_t
   end
 
+  @doc """
+  Rotation on the y axis by rad_degree radiant
+  """
+  def rotation_y(t, rad_degree) do
+    cos = :math.cos(rad_degree)
+    sin = :math.sin(rad_degree)
+    x_rot_t = matrix4x4(cos,  0,  sin, 0,
+                        0,    1,    0, 0,
+                        -sin, 0,  cos, 0,
+                        0,    0,    0, 1)
+    { :ok, x_rotated_t } = matrix_multiply(x_rot_t, t)
+    x_rotated_t
+  end
+
 end
