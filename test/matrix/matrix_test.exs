@@ -30,6 +30,24 @@ defmodule MyElixirRayTracerTestr.Matrix do
     assert m[2.2] == 1
   end
 
+  test "An mpoint has x, y, z, w keys and they are equals to index (row,col) keys" do
+    m = mpoint(1, 2, 3)
+    #Mix.Shell.IO.info("#{m}")
+    assert m.x == 1 and m.x == m[0.0]
+    assert m.y == 2 and m.y == m[1.0]
+    assert m.z == 3 and m.z == m[2.0]
+    assert m.w == 1 and m.w == m[3.0]
+  end
+
+  test "An mvector has x, y, z, w keys and they are equals to index (row,col) keys" do
+    m = mvector(1, 2, 3)
+    #Mix.Shell.IO.info("#{m}")
+    assert m.x == 1 and m.x == m[0.0]
+    assert m.y == 2 and m.y == m[1.0]
+    assert m.z == 3 and m.z == m[2.0]
+    assert m.w == 0 and m.w == m[3.0]
+  end
+
   test "Matrix equality with identical matrices" do
     m1 = matrix4x4(1, 2, 3, 4, 5.5, 6.5, 7.5, 8.5, 9, 10, 11, 12, 13.5, 14.5, 15.5, 16.5)
     m2 = matrix4x4(1, 2, 3, 4, 5.5, 6.5, 7.5, 8.5, 9, 10, 11, 12, 13.5, 14.5, 15.5, 16.5)
@@ -60,6 +78,16 @@ defmodule MyElixirRayTracerTestr.Matrix do
     assert matrix_equals(m1, m2) == [ equal: false ]
   end
 
+  test "Matrix equality with the ? method" do
+    m1 = matrix4x4(1, 2, 3, 4, 5.5, 6.5, 7.5, 8.5, 9, 10, 11, 12, 13.5, 14.5, 15.5, 16.5)
+    m2 = matrix4x4(1, 2, 3, 4, 5.5, 6.5, 7.5, 8.5, 9, 10, 11, 12, 13.5, 14.5, 15.5, 16.5)
+    assert matrix_equals?(m1, m2) == true
+
+    m1 = matrix3x3(1, 2, 3, 4, 5.5, 6.5, 7.5, 8.5, 9)
+    m2 = matrix4x4(1, 2, 3, 4, 5.5, 6.5, 7.5, 8.5, 9, 10, 11, 12, 13.5, 14.5, 15.5, 1600.5)
+    assert matrix_equals?(m1, m2) == false
+  end
+
   test "Multiplying two matrices" do
     m1 = matrix4x4(1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4, 3, 2)
     m2 = matrix4x4(-2, 1, 2, 3, 3, 2, 1, -1, 4, 3, 6, 5, 1, 2, 7, 8)
@@ -76,6 +104,14 @@ defmodule MyElixirRayTracerTestr.Matrix do
     { :ok, mult } = matrix_multiply(m1, t2)
     res = matrix_equals(mult, p)
     assert res == [ equal: true ]
+  end
+
+  test "A matrix multiplied by a mpoint" do
+    m1 = matrix4x4(1, 2, 3, 4, 2, 4, 4, 2, 8, 6, 4, 1, 0, 0, 0, 1)
+    t2 = mpoint(1, 2, 3)
+    p = mpoint(18, 24, 33)
+    { :ok, mult } = matrix_multiply(m1, t2)
+    assert matrix_equals?(mult, p)
   end
 
   test "Multiplying a matrix by the identity matrix" do

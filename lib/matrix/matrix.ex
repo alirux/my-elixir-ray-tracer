@@ -76,13 +76,57 @@ defmodule MyElixirRayTracer.Matrix do
      }
   end
 
+  @doc """
+  Defines a point (like Tuple) based on a 4x1 matrix
+  """
+  def mpoint(x, y, z) do
+    w = 1
+    matrix4x1(x, y, z, w)
+    |> Map.put(:x, x)
+    |> Map.put(:y, y)
+    |> Map.put(:z, z)
+    |> Map.put(:w, w)
+  end
+
+  @doc """
+  Defines a vector (like Tuple) based on a 4x1 matrix
+  """
+  def mvector(x, y, z) do
+    w = 0
+    matrix4x1(x, y, z, w)
+    |> Map.put(:x, x)
+    |> Map.put(:y, y)
+    |> Map.put(:z, z)
+    |> Map.put(:w, w)
+  end
+
+  @doc """
+  Matrix equivalence: all the elements must be equals
+
+  Returns a keyword list with the followinf keyword:
+
+  - equal
+  - row
+  - col
+  - index
+  - m1 valiue
+  - m2 value
+
+  """
   def matrix_equals(m1, m2) do
     if m1[:nrows] != m2[:nrows] or m2[:ncols] != m2[:ncols] do
       [ equal: false ]
     else
       matrix_equals(m1, m2, 0, 0)
     end
+  end
 
+  @doc """
+  Are the two matrix equal?
+  """
+  def matrix_equals?(m1, m2) do
+    e = matrix_equals(m1, m2)
+    Keyword.get(e, :equal)
   end
 
   #alias Mix.Shell.IO, as: Shell
