@@ -100,4 +100,17 @@ defmodule MyElixirRayTracerTestr.Transformations do
     assert matrix_equals?(res, expected_point), "Bad rotation"
   end
 
+  test "Rotating a point around the z axis" do
+    start_p = mpoint(0, 1, 0)
+    half_quarter = identity_matrix4x4() |> rotation_z(:math.pi() / 4)
+    full_quarter = identity_matrix4x4() |> rotation_z(:math.pi() / 2)
+    expected_point = mpoint(-:math.sqrt(2) / 2, :math.sqrt(2) / 2, 0)
+    { :ok, res } = matrix_multiply(half_quarter, start_p)
+    assert matrix_equals?(res, expected_point), "Bad rotation"
+
+    expected_point = mpoint(-1, 0, 0)
+    { :ok, res } = matrix_multiply(full_quarter, start_p)
+    assert matrix_equals?(res, expected_point), "Bad rotation"
+  end
+
 end
