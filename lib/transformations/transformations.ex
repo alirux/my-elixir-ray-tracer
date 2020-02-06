@@ -72,4 +72,16 @@ defmodule MyElixirRayTracer.Transformations do
     z_rotated_t
   end
 
+  @doc """
+  Shearing transformation
+  """
+  def shearing(t, xy, xz, yx, yz, zx, zy) do
+    shearing_t = matrix4x4( 1, xy, xz, 0,
+                           yx,  1, yz, 0,
+                           zx, zy,  1, 0,
+                            0,  0,  0, 1)
+    { :ok, sheared_t } = matrix_multiply(shearing_t, t)
+    sheared_t
+  end
+
 end
