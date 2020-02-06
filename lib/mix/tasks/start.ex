@@ -7,6 +7,6 @@ defmodule Mix.Tasks.Start do
   use Mix.Task
 
   # 3) Add the run method
-  def run(_), do: MyElixirRayTracer.Exercises.Tick.execute()
+  def run(_), do: MyElixirRayTracer.Exercises.Clock.execute()
 
 end
