@@ -113,4 +113,75 @@ defmodule MyElixirRayTracerTestr.Transformations do
     assert matrix_equals?(res, expected_point), "Bad rotation"
   end
 
+  test "A shearing transformation moves x in proportion to y" do
+    start_p = mpoint(2, 3, 4)
+    t = identity_matrix4x4() |> shearing(1, 0, 0, 0, 0, 0)
+    expected_end_p = mpoint(5, 3, 4)
+    { :ok, res } = matrix_multiply(t, start_p)
+    assert matrix_equals?(res, expected_end_p), "Bad shearing transformation"
+  end
+
+  test "A shearing transformation moves x in proportion to z" do
+    start_p = mpoint(2, 3, 4)
+    t = identity_matrix4x4() |> shearing(0, 1, 0, 0, 0, 0)
+    expected_end_p = mpoint(6, 3, 4)
+    { :ok, res } = matrix_multiply(t, start_p)
+    assert matrix_equals?(res, expected_end_p), "Bad shearing transformation"
+  end
+
+  test "A shearing transformation moves y in proportion to x" do
+    start_p = mpoint(2, 3, 4)
+    t = identity_matrix4x4() |> shearing(0, 0, 1, 0, 0, 0)
+    expected_end_p = mpoint(2, 5, 4)
+    { :ok, res } = matrix_multiply(t, start_p)
+    assert matrix_equals?(res, expected_end_p), "Bad shearing transformation"
+  end
+
+  test "A shearing transformation moves y in proportion to z" do
+    start_p = mpoint(2, 3, 4)
+    t = identity_matrix4x4() |> shearing(0, 0, 0, 1, 0, 0)
+    expected_end_p = mpoint(2, 7, 4)
+    { :ok, res } = matrix_multiply(t, start_p)
+    assert matrix_equals?(res, expected_end_p), "Bad shearing transformation"
+  end
+
+  test "A shearing transformation moves z in proportion to x" do
+    start_p = mpoint(2, 3, 4)
+    t = identity_matrix4x4() |> shearing(0, 0, 0, 0, 1, 0)
+    expected_end_p = mpoint(2, 3, 6)
+    { :ok, res } = matrix_multiply(t, start_p)
+    assert matrix_equals?(res, expected_end_p), "Bad shearing transformation"
+  end
+
+  test "A shearing transformation moves z in proportion to y" do
+    start_p = mpoint(2, 3, 4)
+    t = identity_matrix4x4() |> shearing(0, 0, 0, 0, 0, 1)
+    expected_end_p = mpoint(2, 3, 7)
+    { :ok, res } = matrix_multiply(t, start_p)
+    assert matrix_equals?(res, expected_end_p), "Bad shearing transformation"
+  end
+
+  test "Individual transformations are applied in sequence" do
+    p = mpoint(1, 0, 1)
+    ta = identity_matrix4x4() |> rotation_x(:math.pi() / 2)
+    tb = identity_matrix4x4() |> scaling(5, 5, 5)
+    tc = identity_matrix4x4() |> translation(10, 5, 7)
+    { :ok, p2 } = matrix_multiply(ta, p)
+    assert matrix_equals?(p2, mpoint(1, -1, 0))
+    { :ok, p3 } = matrix_multiply(tb, p2)
+    assert matrix_equals?(p3, mpoint(5, -5, 0))
+    { :ok, p4 } = matrix_multiply(tc, p3)
+    assert matrix_equals?(p4, mpoint(15, 0, 7))
+  end
+
+  test "Chained transformations must be applied in reverse order" do
+    p = mpoint(1, 0, 1)
+    t = identity_matrix4x4()
+      |> rotation_x(:math.pi() / 2)
+      |> scaling(5, 5, 5)
+      |> translation(10, 5, 7)
+    { :ok, p2 } = matrix_multiply(t, p)
+    assert matrix_equals?(p2, mpoint(15, 0, 7))
+  end
+
 end
