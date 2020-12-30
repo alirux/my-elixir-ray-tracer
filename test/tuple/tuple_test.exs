@@ -15,7 +15,7 @@ defmodule MyElixirRayTracerTest.Tuple do
     assert isAVector(a) == false
   end
 
-  test "A tuple with w=1.0 is a vector" do
+  test "A tuple with w=0.0 is a vector" do
     a = %Tuple { x: 4.3, y: -4.2, z: 3.1, w: 0.0 }
     assert a.x == 4.3
     assert a.y == -4.2
