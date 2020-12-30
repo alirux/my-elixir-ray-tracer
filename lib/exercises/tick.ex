@@ -7,7 +7,7 @@ defmodule MyElixirRayTracer.Exercises.Tick do
   alias MyElixirRayTracer.Exercises.Environment
   #alias MyElixirRayTracer.Tuple
   alias Mix.Shell.IO, as: Shell
-  alias MyElixirRayTracer.Canvas
+  #alias MyElixirRayTracer.Canvas
   import MyElixirRayTracer.Canvas
   import MyElixirRayTracer.Color
 
