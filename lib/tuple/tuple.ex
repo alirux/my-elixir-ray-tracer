@@ -3,6 +3,7 @@ defmodule MyElixirRayTracer.Tuple do
   Definition and operations on tuples, points and vectors
   """
   alias MyElixirRayTracer.Tuple;
+  #alias Mix.Shell.IO, as: Shell
 
   defstruct x: 0, y: 0, z: 0, w: 0
 
@@ -12,6 +13,10 @@ defmodule MyElixirRayTracer.Tuple do
 
   def isAVector(tuple) do
     tuple.w == 0
+  end
+
+  def tuple(x, y, z, w) do
+    %Tuple { x: x, y: y, z: z, w: w}
   end
 
   def point(x, y, z) do
@@ -72,6 +77,17 @@ defmodule MyElixirRayTracer.Tuple do
     vector(a.y * b.z - a.z * b.y,
           a.z * b.x - a.x * b.z,
           a.x * b.y - a.y * b.x)
+  end
+
+  @doc """
+  Transform the tuple (translation, scaling, ...) by multiplying the transformation matrix by the tuple
+  """
+  def tuple_transform(t, trans_matrix) do
+    #Shell.info("(#{t.x}, #{t.y}, #{t.z}, #{t.w}) #{trans_matrix[0.0]} #{trans_matrix[0.1]} #{trans_matrix[0.2]} #{trans_matrix[0.3]}")
+    tuple(trans_matrix[0.0] * t.x + trans_matrix[0.1] * t.y + trans_matrix[0.2] * t.z + trans_matrix[0.3] * t.w,
+    trans_matrix[1.0] * t.x + trans_matrix[1.1] * t.y + trans_matrix[1.2] * t.z + trans_matrix[1.3] * t.w,
+    trans_matrix[2.0] * t.x + trans_matrix[2.1] * t.y + trans_matrix[2.2] * t.z + trans_matrix[2.3] * t.w,
+    trans_matrix[3.0] * t.x + trans_matrix[3.1] * t.y + trans_matrix[3.2] * t.z + trans_matrix[3.3] * t.w)
   end
 
 end

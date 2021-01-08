@@ -5,6 +5,8 @@ defmodule MyElixirRayTracerTest.Ray do
   import MyElixirRayTracer.Tuple
   import MyElixirRayTracer.Ray
   import MyElixirRayTracer.Sphere
+  import MyElixirRayTracer.Transformations
+  import MyElixirRayTracer.Matrix
 
   test "Creating and querying a ray" do
     origin = point(1, 2, 3)
@@ -71,6 +73,22 @@ defmodule MyElixirRayTracerTest.Ray do
     assert intersections[0].object == sphere
     assert intersections[1].time == -4.0
     assert intersections[1].object == sphere
+  end
+
+  test "Translating a ray" do
+    ray = ray(point(1, 2, 3), vector(0, 1, 0))
+    m = identity_matrix4x4() |> translation(3, 4, 5)
+    ray_translated = ray_transform(ray, m)
+    assert ray_translated.origin == point(4, 6, 8)
+    assert ray_translated.direction == vector(0, 1, 0)
+  end
+
+  test "Scaling a ray" do
+    ray = ray(point(1, 2, 3), vector(0, 1, 0))
+    m = identity_matrix4x4() |> scaling(2, 3, 4)
+    ray_translated = ray_transform(ray, m)
+    assert ray_translated.origin == point(2, 6, 12)
+    assert ray_translated.direction == vector(0, 3, 0)
   end
 
 end

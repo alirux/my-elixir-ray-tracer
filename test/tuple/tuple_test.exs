@@ -5,6 +5,9 @@ defmodule MyElixirRayTracerTest.Tuple do
   import MyElixirRayTracer.Tuple
   alias MyElixirRayTracer.Tuple
 
+  import MyElixirRayTracer.Matrix
+  import MyElixirRayTracer.Transformations
+
   test "A tuple with w=1.0 is a point" do
     a = %Tuple { x: 4.3, y: -4.2, z: 3.1, w: 1.0 }
     assert a.x == 4.3
@@ -183,6 +186,46 @@ defmodule MyElixirRayTracerTest.Tuple do
     b = vector(2, 3, 4)
     assert cross(a, b) == vector(-1, 2, -1)
     assert cross(b, a) == vector(1, -2, 1)
+  end
+
+  test "Translate a point" do
+    t = point(1, 2, 3)
+    trans_matrix = identity_matrix4x4() |> translation(2, 3, 4)
+    trans_t = tuple_transform(t, trans_matrix)
+    assert trans_t.x == 3
+    assert trans_t.y == 5
+    assert trans_t.z == 7
+    assert trans_t.w == 1
+  end
+
+  test "Translate a vector" do
+    t = vector(1, 2, 3)
+    trans_matrix = identity_matrix4x4() |> translation(2, 3, 4)
+    trans_t = tuple_transform(t, trans_matrix)
+    assert trans_t.x == 1
+    assert trans_t.y == 2
+    assert trans_t.z == 3
+    assert trans_t.w == 0
+  end
+
+  test "Scaling a point" do
+    t = point(1, 2, 3)
+    trans_matrix = identity_matrix4x4() |> scaling(2, 3, 4)
+    trans_t = tuple_transform(t, trans_matrix)
+    assert trans_t.x == 2
+    assert trans_t.y == 6
+    assert trans_t.z == 12
+    assert trans_t.w == 1
+  end
+
+  test "Scaling a vector" do
+    t = vector(1, 2, 3)
+    trans_matrix = identity_matrix4x4() |> scaling(2, 3, 4)
+    trans_t = tuple_transform(t, trans_matrix)
+    assert trans_t.x == 2
+    assert trans_t.y == 6
+    assert trans_t.z == 12
+    assert trans_t.w == 0
   end
 
 end
