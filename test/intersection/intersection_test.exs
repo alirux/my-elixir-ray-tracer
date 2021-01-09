@@ -8,8 +8,8 @@ defmodule MyElixirRayTracerTest.Intersection do
     s = MyElixirRayTracer.Sphere.sphere()
     i1 = intersection(1, s)
     i2 = intersection(2, s)
-    xs = intersections([], i2)
-      |> intersections(i1)
+    xs = intersections_add([], i2)
+      |> intersections_add(i1)
     hit = hit(xs)
     assert hit == i1
   end
@@ -38,7 +38,7 @@ defmodule MyElixirRayTracerTest.Intersection do
     i2 = intersection(7, s)
     i3 = intersection(-3, s)
     i4 = intersection(2, s)
-    xs = intersections(i2, i1) |> intersections(i3) |> intersections(i4)
+    xs = intersections(i2, i1) |> intersections_add(i3) |> intersections_add(i4)
     hit = hit(xs)
     assert hit == i4
   end
