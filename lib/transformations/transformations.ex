@@ -84,4 +84,8 @@ defmodule MyElixirRayTracer.Transformations do
     sheared_t
   end
 
+  def set_transform(object, trans_matrix) do
+    %{ object | transform: trans_matrix }
+  end
+
 end

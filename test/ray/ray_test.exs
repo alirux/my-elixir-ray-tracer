@@ -91,4 +91,20 @@ defmodule MyElixirRayTracerTest.Ray do
     assert ray_translated.direction == vector(0, 3, 0)
   end
 
+  test "Intersecting a scaled sphere with a ray" do
+    r = ray(point(0, 0, -5), vector(0, 0, 1))
+    s = sphere(identity_matrix4x4() |> scaling(2, 2, 2))
+    xs = ray_intersect(s, r)
+    assert map_size(xs) == 2
+    assert xs[0].time == 3
+    assert xs[1].time == 7
+  end
+
+  test "Intersecting a traslated sphere with a ray" do
+    r = ray(point(0, 0, -5), vector(0, 0, 1))
+    s = sphere(identity_matrix4x4() |> translation(5, 0, 0))
+    xs = ray_intersect(s, r)
+    assert map_size(xs) == 0
+  end
+
 end

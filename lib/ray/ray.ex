@@ -4,7 +4,7 @@ defmodule MyElixirRayTracer.Ray do
 
   import MyElixirRayTracer.Tuple
   import MyElixirRayTracer.Intersection
-  import MyElixirRayTracer.Sphere
+  import MyElixirRayTracer.Matrix
 
   defstruct [ :origin, :direction ]
 
@@ -26,6 +26,10 @@ defmodule MyElixirRayTracer.Ray do
   The result of the function is a map with integer keys (0, 1) and intersection struct as values.
   """
   def ray_intersect(sphere, ray) do
+    # Find the inverse sphere transformation and apply it to the ray
+    { :ok, sphere_inv_trans } = matrix_inverse(sphere.transform)
+    ray = ray_transform(ray, sphere_inv_trans)
+    # Calculate the intersections
     sphere_center_to_ray_origin_vector = minus(ray.origin, point(0, 0, 0))
     a = dot(ray.direction, ray.direction)
     b = 2 * dot(ray.direction, sphere_center_to_ray_origin_vector)
