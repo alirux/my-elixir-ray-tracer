@@ -190,8 +190,7 @@ defmodule MyElixirRayTracerTest.Tuple do
 
   test "Translate a point" do
     t = point(1, 2, 3)
-    trans_matrix = identity_matrix4x4() |> translation(2, 3, 4)
-    trans_t = tuple_transform(t, trans_matrix)
+    trans_t = identity_matrix4x4() |> translation(2, 3, 4) |> tuple_transform(t)
     assert trans_t.x == 3
     assert trans_t.y == 5
     assert trans_t.z == 7
@@ -200,8 +199,7 @@ defmodule MyElixirRayTracerTest.Tuple do
 
   test "Translate a vector" do
     t = vector(1, 2, 3)
-    trans_matrix = identity_matrix4x4() |> translation(2, 3, 4)
-    trans_t = tuple_transform(t, trans_matrix)
+    trans_t = identity_matrix4x4() |> translation(2, 3, 4) |> tuple_transform(t)
     assert trans_t.x == 1
     assert trans_t.y == 2
     assert trans_t.z == 3
@@ -210,8 +208,7 @@ defmodule MyElixirRayTracerTest.Tuple do
 
   test "Scaling a point" do
     t = point(1, 2, 3)
-    trans_matrix = identity_matrix4x4() |> scaling(2, 3, 4)
-    trans_t = tuple_transform(t, trans_matrix)
+    trans_t = identity_matrix4x4() |> scaling(2, 3, 4) |> tuple_transform(t)
     assert trans_t.x == 2
     assert trans_t.y == 6
     assert trans_t.z == 12
@@ -220,12 +217,24 @@ defmodule MyElixirRayTracerTest.Tuple do
 
   test "Scaling a vector" do
     t = vector(1, 2, 3)
-    trans_matrix = identity_matrix4x4() |> scaling(2, 3, 4)
-    trans_t = tuple_transform(t, trans_matrix)
+    trans_t = identity_matrix4x4() |> scaling(2, 3, 4) |> tuple_transform(t)
     assert trans_t.x == 2
     assert trans_t.y == 6
     assert trans_t.z == 12
     assert trans_t.w == 0
   end
+
+  test "Tuples equal by tolerance" do
+    t1 = tuple(1.00001, 1.00001, 1.00001, 0)
+    t2 = tuple(1.00002, 1.00002, 1.00002, 0)
+    assert tuple_equal?(t1, t2)
+  end
+
+  test "Tuples not equal by tolerance" do
+    t1 = tuple(1.0001, 1.0001, 1.0001, 0)
+    t2 = tuple(1.0002, 1.0002, 1.0002, 0)
+    assert !tuple_equal?(t1, t2)
+  end
+
 
 end

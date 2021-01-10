@@ -252,6 +252,18 @@ defmodule MyElixirRayTracerTestr.Matrix do
     assert matrix_equals(inverse, expected_inverse) == [ equal: true ]
   end
 
+  test "Calculating the inverse with ? method" do
+    m = matrix4x4(9, 3, 0, 9, -5, -2, -6, -3, -4, 9, 6, 4, -7, 6, 6, 2)
+    expected_inverse = matrix4x4(-0.04074, -0.07778, 0.14444, -0.22222, -0.07778, 0.03333, 0.36667, -0.33333, -0.02901, -0.14630, -0.10926, 0.12963, 0.17778, 0.06667, -0.26667, 0.33333)
+    inverse = matrix_inverse!(m)
+    assert matrix_equals?(inverse, expected_inverse)
+  end
+
+  test "Calculating the inverse with a not invertible matrix with ! method" do
+    m = matrix4x4(-4, 2, -2, -3, 9, 6, 2, 6, 0, -5, 1, -5, 0, 0, 0, 0)
+    assert_raise(MatchError, fn -> matrix_inverse!(m) end)
+  end
+
   test "Multiplying a product by its inverse" do
     m1 = matrix4x4(3, -9, 7, 3, 3, -8, 2, -9, -4, 4, 4, 1, -6, 5, -1, 1)
     m2 = matrix4x4(8, 2, 2, 2, 3, -1, 7, 0, 7, 0, 5, 4, 6, -2, 0, 5)

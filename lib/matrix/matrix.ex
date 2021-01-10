@@ -321,6 +321,15 @@ defmodule MyElixirRayTracer.Matrix do
     end
   end
 
+  @doc """
+  The inverse of a matrix. If it's not invertible an exception occurred
+  """
+  def matrix_inverse!(m) do
+    with { :ok, inverse } = matrix_inverse(m) do
+      inverse
+    end
+  end
+
   defp matrix_inverse(m, d) do
     Enum.map(m, fn { idx, v } ->
       if is_float(idx) do
