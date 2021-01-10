@@ -1,5 +1,5 @@
 defmodule MyElixirRayTracer do
-  alias Mix.Shell.IO, as: Shell
+  #alias Mix.Shell.IO, as: Shell
   @moduledoc """
   Documentation for MyElixirRayTracer.
   """
@@ -8,20 +8,13 @@ defmodule MyElixirRayTracer do
   # @doc """
   # Start the application
   # """
-  # def start(_type, _args) do
-  #   IO.puts "starting"
-  #   {'ok', self()}
-  # end
-
-  def projectile do
-    Shell.info("Started")
+  def start(_type, _args) do
+    IO.puts "starting"
+    {'ok', self()}
   end
 
-  @doc """
-  Hello world.
-  """
-  def hello do
-    :world
+  def main() do
+    MyElixirRayTracer.Raytracer.trace()
   end
 
 end
