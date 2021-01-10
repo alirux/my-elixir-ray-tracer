@@ -1,7 +1,6 @@
 defmodule MyElixirRayTracer.Sphere do
 
   import MyElixirRayTracer.Matrix
-  import MyElixirRayTracer.Transformations
 
   defstruct radius: 1, transform: identity_matrix4x4()
 
