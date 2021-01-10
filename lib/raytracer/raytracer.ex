@@ -53,7 +53,7 @@ defmodule MyElixirRayTracer.Raytracer do
   # hit found, draw it on the canvas
   defp draw_hit_point(_hit, ray_enpoint, canvas, canvas_trans) do
     # transform the world coordinate ray_endpoint in canvas coordinates with canvas_trans
-    ray_enpoint_canvas = tuple_transform(ray_enpoint, canvas_trans)
+    ray_enpoint_canvas = tuple_transform(canvas_trans, ray_enpoint)
     cx = max(min(round(ray_enpoint_canvas.x), canvas.width - 1), 0)
     cy = max(min(round(ray_enpoint_canvas.y), canvas.height - 1), 0)
     #IO.inspect(hit_position)

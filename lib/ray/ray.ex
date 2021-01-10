@@ -49,7 +49,7 @@ defmodule MyElixirRayTracer.Ray do
   Transform the ray (translation, scling, ...) by applying the transformation matrix to the origin and direction
   """
   def ray_transform(ray, trans_matrix) do
-    ray(tuple_transform(ray.origin, trans_matrix), tuple_transform(ray.direction, trans_matrix))
+    ray(tuple_transform(trans_matrix, ray.origin), tuple_transform(trans_matrix, ray.direction))
   end
 
 end
