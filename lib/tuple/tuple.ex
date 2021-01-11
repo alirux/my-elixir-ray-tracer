@@ -99,4 +99,11 @@ defmodule MyElixirRayTracer.Tuple do
     equal(t1.x, t2.x) and equal(t1.y, t2.y) and equal(t1.z, t2.z) and equal(t1.w, t2.w)
   end
 
+  @doc """
+  Reflect the vector v by the normal
+  """
+  def reflect(v, normal) do
+    minus v, multiply(normal, 2 * dot(v, normal))
+  end
+
 end

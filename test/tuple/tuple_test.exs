@@ -236,5 +236,19 @@ defmodule MyElixirRayTracerTest.Tuple do
     assert !tuple_equal?(t1, t2)
   end
 
+  test "Reflecting a vector approaching at 45" do
+    v = vector(1, -1, 0)
+    n = vector(0, 1, 0)
+    r = reflect(v, n)
+    assert r == vector(1, 1, 0)
+  end
+
+  test "Reflecting a vector off a slanted surface" do
+    v = vector(0, -1, 0)
+    n = vector(:math.sqrt(2)/2, :math.sqrt(2)/2, 0)
+    r = reflect(v, n)
+    assert tuple_equal? r, vector(1, 0, 0)
+  end
+
 
 end
