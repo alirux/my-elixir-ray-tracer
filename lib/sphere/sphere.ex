@@ -2,19 +2,29 @@ defmodule MyElixirRayTracer.Sphere do
 
   import MyElixirRayTracer.Matrix
   import MyElixirRayTracer.Tuple
+  import MyElixirRayTracer.Material
 
-  defstruct radius: 1, transform: identity_matrix4x4()
+  @doc """
+  A sphere
+  """
+  defstruct radius: 1, transform: identity_matrix4x4(), material: material()
 
+  @doc """
+  Build a default sphere
+  """
   def sphere() do
     %MyElixirRayTracer.Sphere {}
   end
 
+  @doc """
+  Build a sphere with a specific transform
+  """
   def sphere(transform) do
     %MyElixirRayTracer.Sphere { transform: transform }
   end
 
   @doc """
-  Finf the normal on a sphere at the point specified
+  Find the normal on a sphere at the point specified
   """
   def sphere_normal_at(sphere, world_point) do
     #IO.inspect(world_point)
