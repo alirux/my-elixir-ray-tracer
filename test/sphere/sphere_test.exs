@@ -6,6 +6,7 @@ defmodule MyElixirRayTracerTest.Sphere do
   import MyElixirRayTracer.Matrix
   import MyElixirRayTracer.Transformations
   import MyElixirRayTracer.Tuple
+  import MyElixirRayTracer.Material
 
   test "A sphere's default transformation" do
     s = sphere()
@@ -138,6 +139,19 @@ defmodule MyElixirRayTracerTest.Sphere do
     s = sphere identity_matrix4x4() |> translation(0, 1, 0) |> scaling(1, 0.5, 1)
     n = sphere_normal_at s, point(1, 0.5, 0)
     assert tuple_equal? n, vector(1, 0, 0)
+  end
+
+  test "A sphere has a default material" do
+    s = sphere()
+    assert s.material == material()
+  end
+
+  test "A sphere may be assigned a material" do
+    s = sphere()
+    m = material()
+    m = %{m | ambient: 1}
+    s = %{s | material: m}
+    assert s.material == m
   end
 
 
