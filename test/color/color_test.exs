@@ -17,7 +17,7 @@ defmodule MyElixirRayTracerTest.Color do
   test "Adding colors" do
     c1 = color(0.9, 0.6, 0.75)
     c2 = color(0.7, 0.1, 0.25)
-    r = add(c1, c2)
+    r = color_add(c1, c2)
     assert r.red == 0.9 + 0.7
     assert r.green == 0.6 + 0.1
     assert r.blue == 0.75 + 0.25
@@ -26,7 +26,7 @@ defmodule MyElixirRayTracerTest.Color do
   test "Subtracting colors" do
     c1 = color(0.9, 0.6, 0.75)
     c2 = color(0.7, 0.1, 0.25)
-    r = minus(c1, c2)
+    r = color_minus(c1, c2)
     assert equal(r.red, 0.2)
     assert r.green == 0.5
     assert r.blue == 0.50
@@ -34,7 +34,7 @@ defmodule MyElixirRayTracerTest.Color do
 
   test "Multiplying a color by a scalar" do
     c = color(0.2, 0.3, 0.4)
-    r = multiply(c, 2)
+    r = color_multiply(c, 2)
     assert r.red == 0.4
     assert r.green == 0.6
     assert r.blue == 0.8
