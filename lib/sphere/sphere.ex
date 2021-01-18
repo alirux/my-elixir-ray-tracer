@@ -24,6 +24,13 @@ defmodule MyElixirRayTracer.Sphere do
   end
 
   @doc """
+  Build a sphere with a specific transform and material
+  """
+  def sphere(transform, material) do
+    %MyElixirRayTracer.Sphere { transform: transform, material: material }
+  end
+
+  @doc """
   Find the normal on a sphere at the point specified
   """
   def sphere_normal_at(sphere, world_point) do
