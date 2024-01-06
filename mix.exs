@@ -14,7 +14,7 @@ defmodule MyElixirRayTracer.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      #mod: { MyElixirRayTracer, [] },
+      mod: { MyElixirRayTracer, [] },
       extra_applications: [:logger]
     ]
   end
