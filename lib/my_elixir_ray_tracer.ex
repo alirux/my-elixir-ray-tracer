@@ -4,13 +4,14 @@ defmodule MyElixirRayTracer do
   Documentation for MyElixirRayTracer.
   """
 
-  #use Application
+  use Application
   # @doc """
   # Start the application
   # """
   def start(_type, _args) do
     IO.puts "starting"
-    {'ok', self()}
+    main()
+    {:ok, self()}
   end
 
   def main() do
