@@ -12,8 +12,8 @@ defmodule MyElixirRayTracer.Raytracer do
   import MyElixirRayTracer.PointLight
 
   @wall_z   0 # z of the wall on which the sphere is projected
-  @canvas_w 600 # width of the canvas
-  @canvas_h 600 # height of the canvas
+  @canvas_w 300 # width of the canvas
+  @canvas_h 300 # height of the canvas
 
   def trace() do
     # Canvas
@@ -25,7 +25,7 @@ defmodule MyElixirRayTracer.Raytracer do
     eye_position = point(0, 0, -400)
 
     # Sphere and material
-    sphere_trans = identity_matrix4x4() |> scaling(220, 220, 220)
+    sphere_trans = identity_matrix4x4() |> scaling(@canvas_w / 3, @canvas_w / 3, @canvas_w / 3)
     material = material(color(1, 0.2, 1), 0.1, 0.9, 0.9, 100)
     s = sphere(sphere_trans, material)
 
