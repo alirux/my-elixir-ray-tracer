@@ -18,8 +18,8 @@ defmodule MyElixirRayTracer.Raytracer do
   def trace() do
     # Canvas
     canvas = Canvas.canvas(@canvas_w, @canvas_h, Color.color(0, 0, 0))
-    # Transforrmation for the canvas: invert the y axis and translate (0,0) in the middle of the canvas
-    canvas_trans = Matrix.identity_matrix4x4() |> Transformations.scaling(1, -1, 1) |> Transformations.translation(@canvas_w/2, @canvas_h/2, 0)
+    # Transformation for the canvas: invert the y axis and translate (0,0) in the middle of the canvas
+    canvas_trans = Matrix.identity_matrix4x4() |> Transformations.scaling(1, -1, 1) |> Transformations.translation(@canvas_w / 2, @canvas_h / 2, 0)
 
     # Eye configuration
     eye_position = RTTuple.point(0, 0, -400)
@@ -35,23 +35,34 @@ defmodule MyElixirRayTracer.Raytracer do
     light = PointLight.point_light(light_position, light_color)
 
     # Start the ray tracing
-    scan(-canvas.width / 2, canvas.height / 2, eye_position, canvas, canvas_trans, s, light)
-    |> Canvas.save_canvas("/tmp/sphere.ppm")
-  end
+    half_w = trunc(@canvas_w / 2)
+    half_h = trunc(@canvas_h / 2)
+    IO.puts("Tracing #{@canvas_w}x#{@canvas_h} canvas...")
+    total_start = System.monotonic_time(:millisecond)
 
-  defp scan(x, y, eye_position, canvas, canvas_trans, sphere, light) do
-    ray_endpoint = RTTuple.point(x, y, @wall_z)
-    ray = Ray.ray(eye_position, RTTuple.normalize(RTTuple.minus(ray_endpoint, eye_position)))
-    canvas = find_hit(ray, sphere) |> draw_hit_point(ray, ray_endpoint, canvas, canvas_trans, light)
-    #Mix.Shell.IO.info("#{x},#{y}")
-    cond do
-      # Current row (y), scan the next column (x)
-      x < canvas.width / 2 and y > -canvas.height / 2 -> scan(x+1, y, eye_position, canvas, canvas_trans, sphere, light)
-      # End of the current row, scan the next next row
-      x >= canvas.width / 2 and y > -canvas.height / 2 -> Mix.Shell.IO.info("Row #{y}"); scan(-canvas.width / 2, y-1, eye_position, canvas, canvas_trans, sphere, light)
-      # End of the job, return the canvas
-      x == -canvas.width / 2 and y <= -canvas.height / 2 -> canvas
-    end
+    {canvas, _} =
+      for y <- half_h..-half_h//-1, x <- -half_w..half_w, reduce: {canvas, total_start} do
+        {acc, row_start} ->
+          new_row_start = if x == -half_w do
+            now = System.monotonic_time(:millisecond)
+            if y == half_h do
+              IO.puts("Row #{y} — total #{now - total_start}ms")
+            else
+              IO.puts("Row #{y} — #{now - row_start}ms row, #{now - total_start}ms total")
+            end
+            now
+          else
+            row_start
+          end
+          ray_endpoint = RTTuple.point(x, y, @wall_z)
+          ray = Ray.ray(eye_position, RTTuple.normalize(RTTuple.minus(ray_endpoint, eye_position)))
+          new_canvas = find_hit(ray, s) |> draw_hit_point(ray, ray_endpoint, acc, canvas_trans, light)
+          {new_canvas, new_row_start}
+      end
+
+    total_ms = System.monotonic_time(:millisecond) - total_start
+    IO.puts("Done in #{total_ms}ms (#{Float.round(total_ms / (@canvas_w * @canvas_h) * 1000, 2)}µs/pixel). Saving to /tmp/sphere.ppm")
+    Canvas.save_canvas(canvas, "/tmp/sphere.ppm")
   end
 
   defp find_hit(ray, sphere) do

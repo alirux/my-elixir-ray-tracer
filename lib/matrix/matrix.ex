@@ -114,10 +114,19 @@ defmodule MyElixirRayTracer.Matrix do
 
   """
   def matrix_equals(m1, m2) do
-    if m1[:nrows] != m2[:nrows] or m2[:ncols] != m2[:ncols] do
-      [ equal: false ]
+    if m1[:nrows] != m2[:nrows] or m1[:ncols] != m2[:ncols] do
+      [equal: false]
     else
-      matrix_equals(m1, m2, 0, 0)
+      mismatch =
+        for(r <- 0..(m1[:nrows] - 1), c <- 0..(m1[:ncols] - 1), do: {r, c})
+        |> Enum.find(fn {r, c} -> not equal(m1[r + c / 10.0], m2[r + c / 10.0]) end)
+      case mismatch do
+        nil ->
+          [equal: true]
+        {r, c} ->
+          idx = r + c / 10.0
+          [equal: false, row: r, col: c, idx: idx, val1: m1[idx], val2: m2[idx]]
+      end
     end
   end
 
@@ -129,74 +138,17 @@ defmodule MyElixirRayTracer.Matrix do
     Keyword.get(e, :equal)
   end
 
-  #alias Mix.Shell.IO, as: Shell
-
-  # A matrix is a map: can we use Map or Enum modules?
-  defp matrix_equals(m1, m2, r, c) do
-    # next indexes
-    { new_r, new_c } = if c < m1[:ncols] - 1 do
-      # same row, next column
-      { r, c + 1 }
-    else
-      if r < m1[:nrows] - 1 do
-        # next row, first column
-        { r + 1, 0 }
-      else
-        # last element: the next row doesn't exist
-        { r + 1, 0 }
-      end
-    end
-
-    # Check the current col and row
-    idx = r + c/10.0
-    #Shell.info("curr=(#{r}, #{c}) next=(#{new_r}, #{new_c}) idx=#{idx}")
-    if equal(m1[idx], m2[idx]) do
-      # Current elements are equal so let's analyze the next element
-      # Check if all the elements are evaluated
-      if new_r < m1[:nrows] do
-        matrix_equals(m1, m2, new_r, new_c)
-      else
-        # All the previous elements were equal, so the two matrixes are equal
-        [ equal: true ]
-      end
-    else
-      # Elements are Different, close the recursion
-      #Shell.info("Different: curr=(#{r}, #{c}) next=(#{new_r}, #{new_c})")
-      [ equal: false, row: r, col: c, idx: idx, val1: m1[idx], val2: m2[idx] ]
-    end
-  end
-
   @doc """
   Multiply row x col two matrixes
   """
   def matrix_multiply(m1, m2) do
-    if m1[:ncols] != m2[:nrows], do: { :error, "Number of columns in m1 must be equal to number of rows of m2"}
-    { :ok, matrix_multiply_rc(m1, m2, 0, 0, 0, 0, %{ :nrows => m1[:nrows], :ncols => m2[:ncols]}, 0)}
-  end
-
-  defp matrix_multiply_rc(m1, m2, r1, c1, r2, c2, res, tot) do
-    idx1 = index(r1, c1)
-    idx2 = index(r2, c2)
-    #Shell.info("(#{r1}, #{c1}) (#{r2}, #{c2}) #{idx1} #{idx2} #{tot}")
-    f = m1[idx1] * m2[idx2]
-    #Shell.info("(#{r1}, #{c1}) (#{r2}, #{c2}) #{idx1} #{idx2} #{tot + f}")
-    cond do
-      # STOP condition, full multiplication was completed: last m1 row and row, last m2 row and col. Add the last element and return the map
-      r1 == m1[:nrows] - 1 and c1 == m1[:ncols] - 1 and r2 == m2[:nrows] - 1 and c2 == m2[:ncols] -1 -> Map.put(res, index(r1, c2), tot + f)
-
-      # a single row x col product is running => same m1 row, next m2 col; same m2 col, next m2 row => accumulate the tot
-      r1 <= m1[:nrows] - 1 and c1 < m1[:ncols] - 1 -> matrix_multiply_rc(m1, m2, r1, c1 + 1, r2 + 1, c2, res, tot + f)
-
-      # The loop on a single m1 row is finished: a single m1 row was multiplied with a single m2 col
-      # Continue until the last m2 col is reached (i.e c2 < m2[:ncols] - 1)
-      # Last m1 col, row x col completed => same m1 row, m1 col reset to zero; reset m2 row to zero, next m2 col => add the new element and reset the tot
-      r1 <= m1[:nrows] - 1 and c1 == m1[:ncols] - 1 and c2 < m2[:ncols] - 1 -> matrix_multiply_rc(m1, m2, r1, 0, 0, c2 + 1, Map.put(res, index(r1, c2), tot + f), 0)
-
-      # The m2 col is the last one => a single m1 row was multiplied for ALL the m2 cols
-      # Last m2 col, row x col completed => next m1 row, m1 col reset to zero; m2 row reset to zero, m2 col reset to zero => add the new element and reset the tot
-      c2 == m2[:ncols] - 1 -> matrix_multiply_rc(m1, m2, r1 + 1, 0, 0, 0, Map.put(res, index(r1, c2), tot + f), 0)
-
-    end
+    if m1[:ncols] != m2[:nrows], do: {:error, "Number of columns in m1 must be equal to number of rows of m2"}
+    result =
+      for r <- 0..(m1[:nrows] - 1), c <- 0..(m2[:ncols] - 1), into: %{nrows: m1[:nrows], ncols: m2[:ncols]} do
+        val = Enum.reduce(0..(m1[:ncols] - 1), 0, fn k, acc -> acc + m1[r + k / 10.0] * m2[k + c / 10.0] end)
+        {r + c / 10.0, val}
+      end
+    {:ok, result}
   end
 
   @doc """
@@ -227,26 +179,11 @@ defmodule MyElixirRayTracer.Matrix do
   def matrix_determinant(m = %{:ncols => 2, :nrows => 2}) do
     m[0.0] * m[1.1] - m[1.0] * m[0.1]
   end
-  # For all the other cases we need to start the recursion
+  # For all the other cases use Enum.reduce over the columns of row 0
   def matrix_determinant(m) do
-    matrix_determinant(m, 0, 0, 0)
-  end
-  # Calculate a single factor (row,col), accumulate the determinant d
-  # and stop when we reach the last column of the row
-  # The determinant d is calculated step by step incrementally until we reach the last column
-  defp matrix_determinant(m, row, col, d) do
-    # Stop clause for the first recursion: Is the last column reached and passed?
-    if col < m[:ncols] do
-      # In the middle of a row (last column included): calc and accumulate the determinant
-      # Calculating the cofactor starts a second recursion to decompose further (if necessary) the matrix
-      # Infact, the cofactor function in turn call the matrix determinant on a smaller matrix until we reach a 2x2 matrix
-      new_d = d + m[index(row, col)] * matrix_cofactor(m, row, col)
-      # First recursion to scan a whole row: calc the factor for the next col
-      matrix_determinant(m, row, col + 1, new_d)
-    else
-      # Last column of the row is passed: stop the first recursion on a row and return the determinant
-      d
-    end
+    Enum.reduce(0..(m[:ncols] - 1), 0, fn col, acc ->
+      acc + m[index(0, col)] * matrix_cofactor(m, 0, col)
+    end)
   end
 
   def submatrix(m, row, col) do

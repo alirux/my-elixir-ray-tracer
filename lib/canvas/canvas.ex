@@ -20,7 +20,8 @@ defmodule MyElixirRayTracer.Canvas do
       y
   """
   def canvas(width, height, color \\ Color.color(0, 0, 0)) do
-    %Canvas { width: width, height: height, pixels: fill_matrix([], 0, height, width, color) }
+    row = List.duplicate(color, width)
+    %Canvas{width: width, height: height, pixels: List.duplicate(row, height)}
   end
 
   @doc """
@@ -49,7 +50,7 @@ defmodule MyElixirRayTracer.Canvas do
     P3
     #{c.width} #{c.height}
     255
-    """ <> ppm_body(c.pixels, "")
+    """ <> ppm_body(c.pixels)
   end
 
   @doc """
@@ -63,46 +64,23 @@ defmodule MyElixirRayTracer.Canvas do
   end
 
   # Prints a PPM row after row
-  defp ppm_body([row | others], ppm) do
-    ppm_body(others, ppm <> ppm_body_row(row))
+  defp ppm_body(rows) do
+    Enum.map_join(rows, "", &ppm_body_row/1)
   end
 
-  defp ppm_body([], ppm), do: ppm
-
-  defp ppm_body_row(pixels), do: ppm_body_row(pixels, 0, "", false)
-
-  # da due elementi
-  defp ppm_body_row([pix | tail], count, ppm, add_space) do
-    scaled_pix = Color.color_to_decimal(pix)
-    new_ppm_pix = "#{scaled_pix.red} #{scaled_pix.green} #{scaled_pix.blue}"
-    new_ppm_pix_space = if add_space, do: " " <> new_ppm_pix, else: new_ppm_pix
-    new_count = count + String.length(new_ppm_pix_space)
-    cond do
-      new_count <= 70 ->
-        ppm_body_row(tail, new_count, ppm <> new_ppm_pix_space, true)
-      new_count > 70 ->
-        ppm_body_row(tail, String.length(new_ppm_pix), ppm <> "\n" <> new_ppm_pix, true)
-    end
-
-  end
-
-  # nessun elemento
-  defp ppm_body_row([], _, ppm, _), do: ppm <> "\n"
-
-  defp fill_matrix(m, curr, height, width, color) when curr < height - 1 do
-    fill_matrix([fill([], 0, width - 1, color)] ++ m, curr + 1, height, width, color)
-  end
-
-  defp fill_matrix(m, curr, height, width, color) when curr == height - 1 do
-    [fill([], 0, width - 1, color)] ++ m
-  end
-
-  defp fill(lst, curr, max, color) when curr < max do
-    fill([color] ++ lst, curr + 1, max, color)
-  end
-
-  defp fill(lst, curr, max, color) when curr == max do
-    [color] ++ lst
+  defp ppm_body_row(pixels) do
+    {last_line, ppm} =
+      Enum.reduce(pixels, {"", ""}, fn pix, {line, ppm} ->
+        scaled = Color.color_to_decimal(pix)
+        token = "#{scaled.red} #{scaled.green} #{scaled.blue}"
+        candidate = if line == "", do: token, else: line <> " " <> token
+        if String.length(candidate) <= 70 do
+          {candidate, ppm}
+        else
+          {token, ppm <> line <> "\n"}
+        end
+      end)
+    ppm <> last_line <> "\n"
   end
 
 end
