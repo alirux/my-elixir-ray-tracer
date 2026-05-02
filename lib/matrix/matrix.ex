@@ -3,129 +3,103 @@ defmodule MyElixirRayTracer.Matrix do
   import MyElixirRayTracer.Common
   require Integer
 
-  # Calculate the float index
-  defp index(r, c) do
-    r + c/10.0
+  # A matrix is stored as a struct with:
+  #   rows  - number of rows
+  #   cols  - number of columns
+  #   data  - flat tuple of all elements in row-major order
+  #           element at (r, c) = elem(data, r * cols + c)
+  defstruct [:rows, :cols, :data]
+
+  @doc """
+  Build a matrix from a list of lists (row-major order)
+  """
+  def new(rows_list) when is_list(rows_list) do
+    nrows = length(rows_list)
+    ncols = length(hd(rows_list))
+    data = rows_list |> List.flatten() |> List.to_tuple()
+    %__MODULE__{rows: nrows, cols: ncols, data: data}
   end
 
-  # Extract the row from the idx
-  defp idx_to_row(idx) do
-    trunc(idx)
-  end
-
-  # Extract the col from the idx
-  defp idx_to_col(idx) do
-    row = idx_to_row(idx)
-    round((idx - row) * 10)
+  @doc """
+  O(1) element access: returns the element at (r, c)
+  """
+  def at(%__MODULE__{cols: cols, data: data}, r, c) do
+    elem(data, r * cols + c)
   end
 
   @doc """
   Defines a 4x4 identity matrix
   """
   def identity_matrix4x4() do
-    %{ :nrows => 4, :ncols => 4,
-       0.0 => 1, 0.1 => 0, 0.2 => 0, 0.3 => 0,
-       1.0 => 0, 1.1 => 1, 1.2 => 0, 1.3 => 0,
-       2.0 => 0, 2.1 => 0, 2.2 => 1, 2.3 => 0,
-       3.0 => 0, 3.1 => 0, 3.2 => 0, 3.3 => 1,
-     }
+    new([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
   end
 
   @doc """
   Defines a 4x4 matrix
   """
   def matrix4x4(m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23, m30, m31, m32, m33) do
-    %{ :nrows => 4, :ncols => 4,
-       0.0 => m00, 0.1 => m01, 0.2 => m02, 0.3 => m03,
-       1.0 => m10, 1.1 => m11, 1.2 => m12, 1.3 => m13,
-       2.0 => m20, 2.1 => m21, 2.2 => m22, 2.3 => m23,
-       3.0 => m30, 3.1 => m31, 3.2 => m32, 3.3 => m33,
-     }
+    new([[m00,m01,m02,m03],[m10,m11,m12,m13],[m20,m21,m22,m23],[m30,m31,m32,m33]])
   end
 
   @doc """
   Defines a 2x2 matrix
   """
   def matrix2x2(m00, m01, m10, m11) do
-    %{ :nrows => 2, :ncols => 2,
-       0.0 => m00, 0.1 => m01,
-       1.0 => m10, 1.1 => m11
-     }
+    new([[m00,m01],[m10,m11]])
   end
 
   @doc """
   Defines a 3x3 matrix
   """
   def matrix3x3(m00, m01, m02, m10, m11, m12, m20, m21, m22) do
-    %{ :nrows => 3, :ncols => 3,
-       0.0 => m00, 0.1 => m01, 0.2 => m02,
-       1.0 => m10, 1.1 => m11, 1.2 => m12,
-       2.0 => m20, 2.1 => m21, 2.2 => m22
-     }
+    new([[m00,m01,m02],[m10,m11,m12],[m20,m21,m22]])
   end
 
   @doc """
   Defines a 4x1 matrix
   """
   def matrix4x1(m00, m10, m20, m30) do
-    %{ :nrows => 4, :ncols => 1,
-       0.0 => m00,
-       1.0 => m10,
-       2.0 => m20,
-       3.0 => m30
-     }
+    new([[m00],[m10],[m20],[m30]])
   end
 
   @doc """
   Defines a point (like Tuple) based on a 4x1 matrix
   """
   def mpoint(x, y, z) do
-    w = 1
-    matrix4x1(x, y, z, w)
-    |> Map.put(:x, x)
-    |> Map.put(:y, y)
-    |> Map.put(:z, z)
-    |> Map.put(:w, w)
+    new([[x],[y],[z],[1]])
   end
 
   @doc """
   Defines a vector (like Tuple) based on a 4x1 matrix
   """
   def mvector(x, y, z) do
-    w = 0
-    matrix4x1(x, y, z, w)
-    |> Map.put(:x, x)
-    |> Map.put(:y, y)
-    |> Map.put(:z, z)
-    |> Map.put(:w, w)
+    new([[x],[y],[z],[0]])
   end
 
   @doc """
   Matrix equivalence: all the elements must be equals
 
-  Returns a keyword list with the followinf keyword:
+  Returns a keyword list with the following keywords:
 
   - equal
   - row
   - col
-  - index
-  - m1 valiue
+  - m1 value
   - m2 value
 
   """
   def matrix_equals(m1, m2) do
-    if m1[:nrows] != m2[:nrows] or m1[:ncols] != m2[:ncols] do
+    if m1.rows != m2.rows or m1.cols != m2.cols do
       [equal: false]
     else
       mismatch =
-        for(r <- 0..(m1[:nrows] - 1), c <- 0..(m1[:ncols] - 1), do: {r, c})
-        |> Enum.find(fn {r, c} -> not equal(m1[r + c / 10.0], m2[r + c / 10.0]) end)
+        for(r <- 0..(m1.rows - 1), c <- 0..(m1.cols - 1), do: {r, c})
+        |> Enum.find(fn {r, c} -> not equal(at(m1, r, c), at(m2, r, c)) end)
       case mismatch do
         nil ->
           [equal: true]
         {r, c} ->
-          idx = r + c / 10.0
-          [equal: false, row: r, col: c, idx: idx, val1: m1[idx], val2: m2[idx]]
+          [equal: false, row: r, col: c, val1: at(m1, r, c), val2: at(m2, r, c)]
       end
     end
   end
@@ -142,87 +116,49 @@ defmodule MyElixirRayTracer.Matrix do
   Multiply row x col two matrixes
   """
   def matrix_multiply(m1, m2) do
-    if m1[:ncols] != m2[:nrows], do: {:error, "Number of columns in m1 must be equal to number of rows of m2"}
-    result =
-      for r <- 0..(m1[:nrows] - 1), c <- 0..(m2[:ncols] - 1), into: %{nrows: m1[:nrows], ncols: m2[:ncols]} do
-        val = Enum.reduce(0..(m1[:ncols] - 1), 0, fn k, acc -> acc + m1[r + k / 10.0] * m2[k + c / 10.0] end)
-        {r + c / 10.0, val}
-      end
-    {:ok, result}
+    if m1.cols != m2.rows do
+      {:error, "Number of columns in m1 must be equal to number of rows of m2"}
+    else
+      data =
+        for r <- 0..(m1.rows - 1), c <- 0..(m2.cols - 1) do
+          Enum.reduce(0..(m1.cols - 1), 0, fn k, acc -> acc + at(m1, r, k) * at(m2, k, c) end)
+        end |> List.to_tuple()
+      {:ok, %__MODULE__{rows: m1.rows, cols: m2.cols, data: data}}
+    end
   end
 
   @doc """
   Transpose a matrix: swap the columns into rows
   """
   def matrix_transpose(m) do
-    # Two piped operations:
-    # 1) Enum.map return a list of {k, v} tuples
-    # 2) Map.new transform a list of {k, v} tuples into a map of k => v
-    Enum.map(m, fn
-      # Swap col with row
-      {idx, val} when is_float(idx) ->
-        row = idx_to_row(idx)
-        col = idx_to_col(idx)
-        { index(col, row), val }
-      # Swap c with r: the order doesn't matter bc Elixir is creating e new list.
-      # Enum.map doesn't mute elements overwriting the old value
-      {:ncols, val} -> {:nrows, val}
-      {:nrows, val} -> {:ncols, val}
-    end) |> Map.new()
-    #Mix.Shell.IO.info("#{t}")
+    data = for c <- 0..(m.cols - 1), r <- 0..(m.rows - 1), do: at(m, r, c)
+    %__MODULE__{rows: m.cols, cols: m.rows, data: List.to_tuple(data)}
   end
 
   @doc """
   Calculate the determinant of a matrix
   """
   # The stop clause: we know how to calculate a determinant of a 2x2 matrix
-  def matrix_determinant(m = %{:ncols => 2, :nrows => 2}) do
-    m[0.0] * m[1.1] - m[1.0] * m[0.1]
+  def matrix_determinant(%__MODULE__{rows: 2, cols: 2} = m) do
+    at(m, 0, 0) * at(m, 1, 1) - at(m, 1, 0) * at(m, 0, 1)
   end
   # For all the other cases use Enum.reduce over the columns of row 0
   def matrix_determinant(m) do
-    Enum.reduce(0..(m[:ncols] - 1), 0, fn col, acc ->
-      acc + m[index(0, col)] * matrix_cofactor(m, 0, col)
+    Enum.reduce(0..(m.cols - 1), 0, fn col, acc ->
+      acc + at(m, 0, col) * matrix_cofactor(m, 0, col)
     end)
   end
 
   def submatrix(m, row, col) do
-    t = Enum.reject(m, fn { k, _v } ->
-      # Remove the row and the col
-      #Mix.Shell.IO.info("#{k}-#{row}")
-      cond do
-        k == :ncols -> false
-        k == :nrows -> false
-        row == trunc(k) -> true
-        col == round((k - trunc(k)) * 10) -> true
-        true -> false
+    rows =
+      for r <- 0..(m.rows - 1), r != row do
+        for c <- 0..(m.cols - 1), c != col, do: at(m, r, c)
       end
-    end)
-    |> Enum.map(fn { idx, v } ->
-      # Correct the other indexes
-      if is_float(idx) do
-        curr_row = idx_to_row(idx)
-        # if the current row is > of the removed row, then the row index must be decremented
-        new_row = if curr_row < row, do: curr_row, else: curr_row - 1
-        curr_col = idx_to_col(idx)
-        # same for a col
-        new_col = if curr_col < col, do: curr_col, else: curr_col - 1
-        # The new index is:
-        new_idx = index(new_row, new_col)
-        #Mix.Shell.IO.info("#{curr_row},#{curr_col} #{new_row},#{new_col} #{new_idx}")
-        { new_idx, v }
-      else
-        # Decrement the :nrows and :ncols
-        { idx, v - 1 }
-      end
-    end)
-    |> Map.new()
-    #Mix.Shell.IO.info("#{t}")
-    t
+    new(rows)
   end
 
   @doc """
-  A minor of an alement at (row,col) of a matrix, is the determinant of the submatrix (row,col)
+  A minor of an element at (row,col) of a matrix, is the determinant of the submatrix (row,col)
 
   Implemented only for 3x3 matrix
   """
@@ -252,9 +188,14 @@ defmodule MyElixirRayTracer.Matrix do
   def matrix_inverse(m) do
     d = matrix_determinant(m)
     if d == 0 do
-      { :error, "Matrix is not invertible" }
+      {:error, "Matrix is not invertible"}
     else
-      { :ok, matrix_inverse(m, d) }
+      # transpose of cofactor matrix divided by determinant
+      data =
+        for c <- 0..(m.rows - 1), r <- 0..(m.cols - 1) do
+          matrix_cofactor(m, r, c) / d
+        end |> List.to_tuple()
+      {:ok, %__MODULE__{rows: m.rows, cols: m.cols, data: data}}
     end
   end
 
@@ -262,27 +203,9 @@ defmodule MyElixirRayTracer.Matrix do
   The inverse of a matrix. If it's not invertible an exception occurred
   """
   def matrix_inverse!(m) do
-    with { :ok, inverse } = matrix_inverse(m) do
+    with {:ok, inverse} = matrix_inverse(m) do
       inverse
     end
-  end
-
-  defp matrix_inverse(m, d) do
-    Enum.map(m, fn { idx, v } ->
-      if is_float(idx) do
-        # Index for a value
-        curr_row = idx_to_row(idx)
-        curr_col = idx_to_col(idx)
-        # Make the transpose
-        new_idx = index(curr_col, curr_row)
-        # Calculate the cofactor and divide by determinant
-        { new_idx, matrix_cofactor(m, curr_row, curr_col) / d }
-      else
-        # :nrows and :ncols remain the same
-        { idx, v }
-      end
-    end)
-    |> Map.new()
   end
 
 end

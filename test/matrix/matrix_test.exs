@@ -2,50 +2,49 @@ defmodule MyElixirRayTracerTestr.Matrix do
   use ExUnit.Case
   doctest(MyElixirRayTracer.Matrix)
 
+  alias MyElixirRayTracer.Matrix
   import MyElixirRayTracer.Matrix
 
   test "Constructing and inspecting a 4x4 matrix" do
     m = matrix4x4(1, 2, 3, 4, 5.5, 6.5, 7.5, 8.5, 9, 10, 11, 12, 13.5, 14.5, 15.5, 16.5)
-    assert m[0.0] == 1
-    assert m[0.3] == 4
-    assert m[1.0] == 5.5
-    assert m[1.2] == 7.5
-    assert m[2.2] == 11
-    assert m[3.0] == 13.5
-    assert m[3.2] == 15.5
+    assert Matrix.at(m, 0, 0) == 1
+    assert Matrix.at(m, 0, 3) == 4
+    assert Matrix.at(m, 1, 0) == 5.5
+    assert Matrix.at(m, 1, 2) == 7.5
+    assert Matrix.at(m, 2, 2) == 11
+    assert Matrix.at(m, 3, 0) == 13.5
+    assert Matrix.at(m, 3, 2) == 15.5
   end
 
   test "A 2x2 matrix ought to be representable" do
     m = matrix2x2(-3, 5, 1, -2)
-    assert m[0.0] == -3
-    assert m[0.1] == 5
-    assert m[1.0] == 1
-    assert m[1.1] == -2
+    assert Matrix.at(m, 0, 0) == -3
+    assert Matrix.at(m, 0, 1) == 5
+    assert Matrix.at(m, 1, 0) == 1
+    assert Matrix.at(m, 1, 1) == -2
   end
 
   test "A 3x3 matrix ought to be representable" do
     m = matrix3x3(-3, 5, 0, 1, -2, -7, 0, 1, 1)
-    assert m[0.0] == -3
-    assert m[1.1] == -2
-    assert m[2.2] == 1
+    assert Matrix.at(m, 0, 0) == -3
+    assert Matrix.at(m, 1, 1) == -2
+    assert Matrix.at(m, 2, 2) == 1
   end
 
-  test "An mpoint has x, y, z, w keys and they are equals to index (row,col) keys" do
+  test "An mpoint is a 4x1 matrix with w=1" do
     m = mpoint(1, 2, 3)
-    #Mix.Shell.IO.info("#{m}")
-    assert m.x == 1 and m.x == m[0.0]
-    assert m.y == 2 and m.y == m[1.0]
-    assert m.z == 3 and m.z == m[2.0]
-    assert m.w == 1 and m.w == m[3.0]
+    assert Matrix.at(m, 0, 0) == 1
+    assert Matrix.at(m, 1, 0) == 2
+    assert Matrix.at(m, 2, 0) == 3
+    assert Matrix.at(m, 3, 0) == 1
   end
 
-  test "An mvector has x, y, z, w keys and they are equals to index (row,col) keys" do
+  test "An mvector is a 4x1 matrix with w=0" do
     m = mvector(1, 2, 3)
-    #Mix.Shell.IO.info("#{m}")
-    assert m.x == 1 and m.x == m[0.0]
-    assert m.y == 2 and m.y == m[1.0]
-    assert m.z == 3 and m.z == m[2.0]
-    assert m.w == 0 and m.w == m[3.0]
+    assert Matrix.at(m, 0, 0) == 1
+    assert Matrix.at(m, 1, 0) == 2
+    assert Matrix.at(m, 2, 0) == 3
+    assert Matrix.at(m, 3, 0) == 0
   end
 
   test "Matrix equality with identical matrices" do
@@ -57,19 +56,19 @@ defmodule MyElixirRayTracerTestr.Matrix do
   test "Matrix equality with different matrices (first elements differ)" do
     m1 = matrix4x4(1, 2, 3, 4, 5.5, 6.5, 7.5, 8.5, 9, 10, 11, 12, 13.5, 14.5, 15.5, 16.5)
     m2 = matrix4x4(10, 2, 3, 4, 5.5, 6.5, 7.5, 8.5, 9, 10, 11, 12, 13.5, 14.5, 15.5, 16.5)
-    assert matrix_equals(m1, m2) == [ equal: false, row: 0, col: 0, idx: 0.0, val1: 1, val2: 10 ]
+    assert matrix_equals(m1, m2) == [ equal: false, row: 0, col: 0, val1: 1, val2: 10 ]
   end
 
   test "Matrix equality with different matrices (last column elemts differ)" do
     m1 = matrix4x4(1, 2, 3, 4, 5.5, 6.5, 7.5, 8.5, 9, 10, 11, 12, 13.5, 14.5, 15.5, 16.5)
     m2 = matrix4x4(1, 2, 3, 400, 5.5, 6.5, 7.5, 8.5, 9, 10, 11, 12, 13.5, 14.5, 15.5, 16.5)
-    assert matrix_equals(m1, m2) == [ equal: false, row: 0, col: 3, idx: 0.3, val1: 4, val2: 400 ]
+    assert matrix_equals(m1, m2) == [ equal: false, row: 0, col: 3, val1: 4, val2: 400 ]
   end
 
   test "Matrix equality with different matrices (last element of the matrix differ)" do
     m1 = matrix4x4(1, 2, 3, 4, 5.5, 6.5, 7.5, 8.5, 9, 10, 11, 12, 13.5, 14.5, 15.5, 16.5)
     m2 = matrix4x4(1, 2, 3, 4, 5.5, 6.5, 7.5, 8.5, 9, 10, 11, 12, 13.5, 14.5, 15.5, 1600.5)
-    assert matrix_equals(m1, m2) == [ equal: false, row: 3, col: 3, idx: 3.3, val1: 16.5, val2: 1600.5 ]
+    assert matrix_equals(m1, m2) == [ equal: false, row: 3, col: 3, val1: 16.5, val2: 1600.5 ]
   end
 
   test "Matrix equality with different matrices (different dimensions)" do
@@ -150,8 +149,13 @@ defmodule MyElixirRayTracerTestr.Matrix do
 
   test "Transposing a non square matrix" do
     m = matrix4x1(0, 9, 3, 1)
-    t = %{:nrows => 1, :ncols => 4, 0.0 => 0, 0.1 => 9, 0.2 => 3, 0.3 => 1 }
-    assert matrix_equals(matrix_transpose(m), t) == [ equal: true ]
+    result = matrix_transpose(m)
+    assert result.rows == 1
+    assert result.cols == 4
+    assert Matrix.at(result, 0, 0) == 0
+    assert Matrix.at(result, 0, 1) == 9
+    assert Matrix.at(result, 0, 2) == 3
+    assert Matrix.at(result, 0, 3) == 1
   end
 
   test "Calculating the determinant of a 2x2 matrix" do
@@ -164,8 +168,8 @@ defmodule MyElixirRayTracerTestr.Matrix do
     sub = matrix2x2(-3, 2, 0, 6)
     res = submatrix(m, 0, 2)
     assert matrix_equals(res, sub) ==  [ equal: true ]
-    assert res[:nrows] == sub[:nrows]
-    assert res[:ncols] == sub[:ncols]
+    assert res.rows == sub.rows
+    assert res.cols == sub.cols
   end
 
   test "A submatrix of a 3x3 matrix is a 2x2 matrix (0,0)" do
@@ -175,8 +179,8 @@ defmodule MyElixirRayTracerTestr.Matrix do
     sub = matrix2x2(2, 7, 6, -3)
     res = submatrix(m, 0, 0)
     assert matrix_equals(res, sub) ==  [ equal: true ]
-    assert res[:nrows] == sub[:nrows]
-    assert res[:ncols] == sub[:ncols]
+    assert res.rows == sub.rows
+    assert res.cols == sub.cols
   end
 
   test "A submatrix of a 3x3 matrix is a 2x2 matrix (2,2)" do
@@ -186,8 +190,8 @@ defmodule MyElixirRayTracerTestr.Matrix do
     sub = matrix2x2(1, 5, -3, 2)
     res = submatrix(m, 2, 2)
     assert matrix_equals(res, sub) ==  [ equal: true ]
-    assert res[:nrows] == sub[:nrows]
-    assert res[:ncols] == sub[:ncols]
+    assert res.rows == sub.rows
+    assert res.cols == sub.cols
   end
 
   test "A submatrix of a 4x4 matrix is a 3x3 matrix" do
@@ -195,11 +199,11 @@ defmodule MyElixirRayTracerTestr.Matrix do
     sub = matrix3x3(-6, 1, 6, -8, 8, 6, -7, -1, 1)
     res = submatrix(m, 2, 1)
     assert matrix_equals(res, sub) ==  [ equal: true ]
-    assert res[:nrows] == sub[:nrows]
-    assert res[:ncols] == sub[:ncols]
+    assert res.rows == sub.rows
+    assert res.cols == sub.cols
   end
 
-  # A minor of an alement at (row,col) of a matrix, is the determinant of the submatrix (row,col)
+  # A minor of an element at (row,col) of a matrix, is the determinant of the submatrix (row,col)
   test "Calculating a minor of a 3x3 matrix" do
     m = matrix3x3(3, 5, 0, 2, -1, -7, 6, -1, 5)
     assert matrix_minor(m, 1, 0) == 25

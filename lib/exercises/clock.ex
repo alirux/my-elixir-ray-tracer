@@ -24,8 +24,8 @@ defmodule MyElixirRayTracer.Exercises.Clock do
       Enum.reduce(0..11, {c, tick_point}, fn _i, {canvas, point} ->
         # Calculate the tick_point on the canvas coordinates
         {:ok, point_on_canvas} = Matrix.matrix_multiply(canvas_trans, point)
-        cx = max(min(round(point_on_canvas[0.0]), canvas.width - 1), 0)
-        cy = max(min(round(point_on_canvas[1.0]), canvas.height - 1), 0)
+        cx = max(min(round(Matrix.at(point_on_canvas, 0, 0)), canvas.width - 1), 0)
+        cy = max(min(round(Matrix.at(point_on_canvas, 1, 0)), canvas.height - 1), 0)
         new_canvas = Canvas.write_pixel(canvas, cx, cy, Color.color(0, 0, 0))
         # Calculate the next clock tick on the x,y native coordinates
         {:ok, new_point} = Matrix.matrix_multiply(clock_trans, point)
