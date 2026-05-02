@@ -23,3 +23,9 @@ erl_crash.dump
 my_elixir_ray_tracer-*.tar
 
 .elixir_ls
+
+# macOS
+.DS_Store
+
+# Claude Code
+.claude/

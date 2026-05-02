@@ -22,10 +22,10 @@ defmodule MyElixirRayTracer.Tuple do
   end
 
   def point(x, y, z) do
-    %Tuple { x: x, y: y, z: z, w: 1}
+    %Tuple { x: x, y: y, z: z, w: 1.0}
   end
 
-  def vector(x, y, z), do: %Tuple { x: x, y: y, z: z, w: 0}
+  def vector(x, y, z), do: %Tuple { x: x, y: y, z: z, w: 0.0}
 
   @doc """
   Add two Tuples a + b
