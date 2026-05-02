@@ -2,14 +2,12 @@ defmodule MyElixirRayTracer.Exercises.Tick do
   @moduledoc """
   Exercise: fire e projectile
   """
-  import MyElixirRayTracer.Tuple
+  alias MyElixirRayTracer.Tuple, as: RTTuple
   alias MyElixirRayTracer.Exercises.Projectile
   alias MyElixirRayTracer.Exercises.Environment
-  #alias MyElixirRayTracer.Tuple
   alias Mix.Shell.IO, as: Shell
-  #alias MyElixirRayTracer.Canvas
-  import MyElixirRayTracer.Canvas
-  import MyElixirRayTracer.Color
+  alias MyElixirRayTracer.Canvas
+  alias MyElixirRayTracer.Color
 
   @doc """
   ### Calculate the new projectile after a "tick" of time.
@@ -23,8 +21,8 @@ defmodule MyElixirRayTracer.Exercises.Tick do
   """
   def tick(env, proj) do
     #Shell.info("p=[#{proj.position.x}, #{proj.position.y}, #{proj.position.z}, #{proj.position.w}], v=[#{proj.velocity.x}, #{proj.velocity.y}, #{proj.velocity.z}, #{proj.velocity.w}]")
-    position = plus(proj.position, proj.velocity)
-    velocity = plus(proj.velocity, env.gravity) |> plus(env.wind)
+    position = RTTuple.plus(proj.position, proj.velocity)
+    velocity = RTTuple.plus(proj.velocity, env.gravity) |> RTTuple.plus(env.wind)
     %Projectile { position: position, velocity: velocity }
   end
 
@@ -35,7 +33,7 @@ defmodule MyElixirRayTracer.Exercises.Tick do
     cx = min(round(proj.position.x), canvas.width - 1)
     cy = max(min(canvas.height - round(proj.position.y), canvas.height - 1), 0)
     Shell.info("Canvas=[#{cx}, #{cy}] p=[#{proj.position.x}, #{proj.position.y}, #{proj.position.z}, #{proj.position.w}], v=[#{proj.velocity.x}, #{proj.velocity.y}, #{proj.velocity.z}, #{proj.velocity.w}]")
-    new_canvas = write_pixel(canvas, cx, cy, color(0.5, 0.5, 0.5))
+    new_canvas = Canvas.write_pixel(canvas, cx, cy, Color.color(0.5, 0.5, 0.5))
     if proj.position.y > 0 do
       # The projectile is in flight: see what happens in the next tick
       r = tick(env, proj)
@@ -43,7 +41,7 @@ defmodule MyElixirRayTracer.Exercises.Tick do
     else
       # The projectile hit the ground (y <= 0)
       Shell.info("Saving canvas")
-      save_canvas(canvas, "/tmp/pojectile_trajectory.ppm")
+      Canvas.save_canvas(canvas, "/tmp/pojectile_trajectory.ppm")
       proj
     end
   end
@@ -52,9 +50,9 @@ defmodule MyElixirRayTracer.Exercises.Tick do
   Fire a projectile
   """
   def execute do
-    env = %Environment { gravity: vector(0, -0.8, 0), wind: vector(-0.1, 0, 0)}
-    proj = %Projectile { position: point(0, 1, 0), velocity: MyElixirRayTracer.Tuple.multiply(normalize(vector(1, 0.8, 0)), 17) }
+    env = %Environment { gravity: RTTuple.vector(0, -0.8, 0), wind: RTTuple.vector(-0.1, 0, 0)}
+    proj = %Projectile { position: RTTuple.point(0, 1, 0), velocity: RTTuple.multiply(RTTuple.normalize(RTTuple.vector(1, 0.8, 0)), 17) }
 
-    fire(env, proj, canvas(400, 100, color(1, 1, 1)))
+    fire(env, proj, Canvas.canvas(400, 100, Color.color(1, 1, 1)))
   end
 end

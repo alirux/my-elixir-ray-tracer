@@ -1,13 +1,13 @@
 defmodule MyElixirRayTracer.Sphere do
 
-  import MyElixirRayTracer.Matrix
-  import MyElixirRayTracer.Tuple
-  import MyElixirRayTracer.Material
+  alias MyElixirRayTracer.Matrix
+  alias MyElixirRayTracer.Tuple, as: RTTuple
+  alias MyElixirRayTracer.Material
 
   @doc """
   A sphere
   """
-  defstruct radius: 1, transform: identity_matrix4x4(), material: material()
+  defstruct radius: 1, transform: Matrix.identity_matrix4x4(), material: Material.material()
 
   @doc """
   Build a default sphere
@@ -35,14 +35,14 @@ defmodule MyElixirRayTracer.Sphere do
   """
   def sphere_normal_at(sphere, world_point) do
     #IO.inspect(world_point)
-    object_point = sphere.transform |> matrix_inverse!() |> tuple_transform(world_point)
+    object_point = sphere.transform |> Matrix.matrix_inverse!() |> RTTuple.tuple_transform(world_point)
     #IO.inspect(object_point)
-    object_normal = minus(object_point, point(0, 0, 0))
+    object_normal = RTTuple.minus(object_point, RTTuple.point(0, 0, 0))
     #IO.inspect(object_normal)
-    world_normal = sphere.transform |> matrix_inverse!() |> matrix_transpose() |> tuple_transform(object_normal)
+    world_normal = sphere.transform |> Matrix.matrix_inverse!() |> Matrix.matrix_transpose() |> RTTuple.tuple_transform(object_normal)
     #IO.inspect(world_normal)
     #IO.inspect(magnitude(world_normal))
-    normalize %MyElixirRayTracer.Tuple{ world_normal | w: 0 }
+    RTTuple.normalize %MyElixirRayTracer.Tuple{ world_normal | w: 0 }
   end
 
 end

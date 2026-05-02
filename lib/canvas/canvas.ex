@@ -3,9 +3,7 @@ defmodule MyElixirRayTracer.Canvas do
   Canvas definition
   """
   alias MyElixirRayTracer.Canvas
-
-  import MyElixirRayTracer.Color
-  # alias MyElixirRayTracer.Color
+  alias MyElixirRayTracer.Color
 
   defstruct width: 0, height: 0, pixels: [[]]
 
@@ -21,7 +19,7 @@ defmodule MyElixirRayTracer.Canvas do
       V
       y
   """
-  def canvas(width, height, color \\ color(0, 0, 0)) do
+  def canvas(width, height, color \\ Color.color(0, 0, 0)) do
     %Canvas { width: width, height: height, pixels: fill_matrix([], 0, height, width, color) }
   end
 
@@ -75,7 +73,7 @@ defmodule MyElixirRayTracer.Canvas do
 
   # da due elementi
   defp ppm_body_row([pix | tail], count, ppm, add_space) do
-    scaled_pix = color_to_decimal(pix)
+    scaled_pix = Color.color_to_decimal(pix)
     new_ppm_pix = "#{scaled_pix.red} #{scaled_pix.green} #{scaled_pix.blue}"
     new_ppm_pix_space = if add_space, do: " " <> new_ppm_pix, else: new_ppm_pix
     new_count = count + String.length(new_ppm_pix_space)

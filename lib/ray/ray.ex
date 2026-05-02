@@ -1,10 +1,9 @@
 defmodule MyElixirRayTracer.Ray do
 
   alias MyElixirRayTracer.Ray
-
-  import MyElixirRayTracer.Tuple
-  import MyElixirRayTracer.Intersection
-  import MyElixirRayTracer.Matrix
+  alias MyElixirRayTracer.Tuple, as: RTTuple
+  alias MyElixirRayTracer.Intersection
+  alias MyElixirRayTracer.Matrix
 
   defstruct [ :origin, :direction ]
 
@@ -17,7 +16,7 @@ defmodule MyElixirRayTracer.Ray do
   """
   def ray_position(ray, t) do
     #plus(ray.origin, multiply(ray.direction, t)
-    ray.direction |> multiply(t) |> plus(ray.origin)
+    ray.direction |> RTTuple.multiply(t) |> RTTuple.plus(ray.origin)
   end
 
   @doc """
@@ -27,13 +26,13 @@ defmodule MyElixirRayTracer.Ray do
   """
   def ray_intersect(sphere, ray) do
     # Find the inverse sphere transformation and apply it to the ray
-    { :ok, sphere_inv_trans } = matrix_inverse(sphere.transform)
+    { :ok, sphere_inv_trans } = Matrix.matrix_inverse(sphere.transform)
     ray = ray_transform(ray, sphere_inv_trans)
     # Calculate the intersections
-    sphere_center_to_ray_origin_vector = minus(ray.origin, point(0, 0, 0))
-    a = dot(ray.direction, ray.direction)
-    b = 2 * dot(ray.direction, sphere_center_to_ray_origin_vector)
-    c = dot(sphere_center_to_ray_origin_vector, sphere_center_to_ray_origin_vector) - 1
+    sphere_center_to_ray_origin_vector = RTTuple.minus(ray.origin, RTTuple.point(0, 0, 0))
+    a = RTTuple.dot(ray.direction, ray.direction)
+    b = 2 * RTTuple.dot(ray.direction, sphere_center_to_ray_origin_vector)
+    c = RTTuple.dot(sphere_center_to_ray_origin_vector, sphere_center_to_ray_origin_vector) - 1
     discriminant = b * b - 4 * a * c;
     if discriminant < 0 do
       %{}
@@ -41,7 +40,7 @@ defmodule MyElixirRayTracer.Ray do
       determinant_sqrt = :math.sqrt(discriminant)
       t1 = ( - b - determinant_sqrt) / ( 2 * a )
       t2 = ( - b + determinant_sqrt) / ( 2 * a )
-      %{ 0 => intersection(t1, sphere), 1 => intersection(t2, sphere) }
+      %{ 0 => Intersection.intersection(t1, sphere), 1 => Intersection.intersection(t2, sphere) }
     end
   end
 
@@ -49,7 +48,7 @@ defmodule MyElixirRayTracer.Ray do
   Transform the ray (translation, scling, ...) by applying the transformation matrix to the origin and direction
   """
   def ray_transform(ray, trans_matrix) do
-    ray(tuple_transform(trans_matrix, ray.origin), tuple_transform(trans_matrix, ray.direction))
+    ray(RTTuple.tuple_transform(trans_matrix, ray.origin), RTTuple.tuple_transform(trans_matrix, ray.direction))
   end
 
 end
