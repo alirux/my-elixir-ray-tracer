@@ -37,28 +37,28 @@ defmodule MyElixirRayTracer.Raytracer do
     # Start the ray tracing
     half_w = trunc(@canvas_w / 2)
     half_h = trunc(@canvas_h / 2)
-    IO.puts("Tracing #{@canvas_w}x#{@canvas_h} canvas...")
+    IO.puts("Tracing #{@canvas_w}x#{@canvas_h} canvas on #{System.schedulers_online()} cores...")
     total_start = System.monotonic_time(:millisecond)
 
-    {canvas, _} =
-      for y <- half_h..-half_h//-1, x <- -half_w..half_w, reduce: {canvas, total_start} do
-        {acc, row_start} ->
-          new_row_start = if x == -half_w do
-            now = System.monotonic_time(:millisecond)
-            if y == half_h do
-              IO.puts("Row #{y} — total #{now - total_start}ms")
-            else
-              IO.puts("Row #{y} — #{now - row_start}ms row, #{now - total_start}ms total")
-            end
-            now
-          else
-            row_start
+    # Compute pixel colors in parallel, one task per row
+    canvas =
+      half_h..-half_h//-1
+      |> Task.async_stream(fn y ->
+        row_start = System.monotonic_time(:millisecond)
+        row_pixels =
+          for x <- -half_w..half_w do
+            ray_endpoint = RTTuple.point(x, y, @wall_z)
+            ray = Ray.ray(eye_position, RTTuple.normalize(RTTuple.minus(ray_endpoint, eye_position)))
+            trace_pixel(ray, ray_endpoint, canvas_trans, s, light)
           end
-          ray_endpoint = RTTuple.point(x, y, @wall_z)
-          ray = Ray.ray(eye_position, RTTuple.normalize(RTTuple.minus(ray_endpoint, eye_position)))
-          new_canvas = find_hit(ray, s) |> draw_hit_point(ray, ray_endpoint, acc, canvas_trans, light)
-          {new_canvas, new_row_start}
-      end
+        IO.puts("Row #{y} — #{System.monotonic_time(:millisecond) - row_start}ms [#{inspect(self())}]")
+        row_pixels
+      end, ordered: true)
+      |> Enum.flat_map(fn {:ok, row} -> row end)
+      |> Enum.reduce(canvas, fn
+        nil, acc -> acc
+        {cx, cy, color}, acc -> Canvas.write_pixel(acc, cx, cy, color)
+      end)
 
     total_ms = System.monotonic_time(:millisecond) - total_start
     IO.puts("Done in #{total_ms}ms (#{Float.round(total_ms / (@canvas_w * @canvas_h) * 1000, 2)}µs/pixel). Saving to /tmp/sphere.ppm")
@@ -70,30 +70,25 @@ defmodule MyElixirRayTracer.Raytracer do
     Ray.ray_intersect(sphere, ray) |> Map.values() |> Intersection.hit()
   end
 
-  # No hits, return the untouched canvas
-  defp draw_hit_point(nil, _ray, _ray_enpoint, canvas, _canvas_trans, _light) do
-    canvas
-  end
+  # Compute the color of a single pixel; returns {cx, cy, color} or nil on no hit
+  defp trace_pixel(ray, ray_endpoint, canvas_trans, sphere, light) do
+    case find_hit(ray, sphere) do
+      nil ->
+        nil
+      hit ->
+        # Transform the world coordinate ray_endpoint into canvas coordinates
+        ray_endpoint_canvas = RTTuple.tuple_transform(canvas_trans, ray_endpoint)
+        cx = max(min(round(ray_endpoint_canvas.x), @canvas_w - 1), 0)
+        cy = max(min(round(ray_endpoint_canvas.y), @canvas_h - 1), 0)
 
-  # hit found, draw it on the canvas
-  defp draw_hit_point(hit, ray, ray_enpoint, canvas, canvas_trans, light) do
-    # transform the world coordinate ray_endpoint in canvas coordinates with canvas_trans
-    ray_enpoint_canvas = RTTuple.tuple_transform(canvas_trans, ray_enpoint)
-    cx = max(min(round(ray_enpoint_canvas.x), canvas.width - 1), 0)
-    cy = max(min(round(ray_enpoint_canvas.y), canvas.height - 1), 0)
-    #IO.inspect(hit_position)
-    #IO.inspect(ray_enpoint_canvas)
-    #Mix.Shell.IO.info("rep=(#{ray_enpoint.x},#{ray_enpoint.y}) repc=(#{ray_enpoint_canvas.x},#{ray_enpoint_canvas.y}) c=(#{cx},#{cy})")
+        # Find the color of the point with the Phong model
+        point = Ray.ray_position(ray, hit.time)
+        normal = Sphere.sphere_normal_at(hit.object, point)
+        eye = RTTuple.negate(ray.direction)
+        color = Material.lighting(hit.object.material, light, point, eye, normal)
 
-    # Find the color of the point with the Phong model
-    point = Ray.ray_position(ray, hit.time)
-    normal = Sphere.sphere_normal_at(hit.object, point)
-    eye = RTTuple.negate(ray.direction)
-    color = Material.lighting(hit.object.material, light, point, eye, normal)
-    #IO.inspect(normal)
-    #Mix.Shell.IO.info("point=(#{point.x},#{point.y}) hit.time=#{hit.time} color=(#{color.red},#{color.green},#{color.blue}) c=(#{cx},#{cy})")
-
-    Canvas.write_pixel(canvas, cx, cy, color)
+        {cx, cy, color}
+    end
   end
 
 
