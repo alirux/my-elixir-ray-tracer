@@ -3,16 +3,16 @@ defmodule RayTracerWebWeb.TracerLive do
 
   alias MyElixirRayTracer.Raytracer
 
-  @topic "raytracer:render"
   @pubsub RayTracerWeb.PubSub
 
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, status: :idle, rows_done: 0, total_ms: nil)}
+    topic = "raytracer:render:#{socket.id}"
+    {:ok, assign(socket, status: :idle, rows_done: 0, total_ms: nil, topic: topic)}
   end
 
   def handle_event("start_trace", _params, socket) do
-    Phoenix.PubSub.subscribe(@pubsub, @topic)
-    Task.start(fn -> Raytracer.trace_streaming(@topic, @pubsub) end)
+    Phoenix.PubSub.subscribe(@pubsub, socket.assigns.topic)
+    Task.start(fn -> Raytracer.trace_streaming(socket.assigns.topic, @pubsub) end)
     {:noreply,
      socket
      |> assign(status: :tracing, rows_done: 0, total_ms: nil)
@@ -27,8 +27,12 @@ defmodule RayTracerWebWeb.TracerLive do
   end
 
   def handle_info({:trace_done, %{ms: ms}}, socket) do
-    Phoenix.PubSub.unsubscribe(@pubsub, @topic)
+    Phoenix.PubSub.unsubscribe(@pubsub, socket.assigns.topic)
     {:noreply, assign(socket, status: :done, total_ms: ms)}
+  end
+
+  def terminate(_reason, socket) do
+    Phoenix.PubSub.unsubscribe(@pubsub, socket.assigns.topic)
   end
 
   def render(assigns) do
