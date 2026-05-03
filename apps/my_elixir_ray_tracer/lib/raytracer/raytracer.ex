@@ -65,6 +65,64 @@ defmodule MyElixirRayTracer.Raytracer do
     Canvas.save_canvas(canvas, "/tmp/sphere.ppm")
   end
 
+  @doc """
+  Stream the ray tracing results to a browser via Phoenix.PubSub.
+  Broadcasts {:row_ready, %{y: cy, pixels: [[x,r,g,b],...]}} per row (unordered)
+  and {:trace_done, %{ms: total_ms}} when finished.
+  """
+  def trace_streaming(topic, pubsub_server) do
+    # Canvas transform: flip y axis and move origin to center
+    canvas_trans = Matrix.identity_matrix4x4() |> Transformations.scaling(1, -1, 1) |> Transformations.translation(@canvas_w / 2, @canvas_h / 2, 0)
+
+    # Eye configuration
+    eye_position = RTTuple.point(0, 0, -400)
+
+    # Sphere and material
+    sphere_trans = Matrix.identity_matrix4x4() |> Transformations.scaling(@canvas_w / 3, @canvas_w / 3, @canvas_w / 3)
+    material = Material.material(Color.color(1, 0.2, 1), 0.1, 0.9, 0.9, 100)
+    s = Sphere.sphere(sphere_trans, material)
+
+    # Light configuration
+    light_position = RTTuple.point(-400, 400, -400)
+    light_color = Color.color(1, 1, 1)
+    light = PointLight.point_light(light_position, light_color)
+
+    half_w = trunc(@canvas_w / 2)
+    half_h = trunc(@canvas_h / 2)
+    total_start = System.monotonic_time(:millisecond)
+
+    # Process rows in parallel; broadcast each as soon as it's done (unordered for live visual effect)
+    half_h..-half_h//-1
+    |> Task.async_stream(fn y ->
+      row_pixels =
+        for x <- -half_w..half_w do
+          ray_endpoint = RTTuple.point(x, y, @wall_z)
+          ray = Ray.ray(eye_position, RTTuple.normalize(RTTuple.minus(ray_endpoint, eye_position)))
+          trace_pixel(ray, ray_endpoint, canvas_trans, s, light)
+        end
+
+      # Canvas y for this world row
+      cy = max(min(round(@canvas_h / 2 - y), @canvas_h - 1), 0)
+
+      # Collect hit pixels as [cx, r, g, b] integer arrays for the JS canvas
+      pixels =
+        row_pixels
+        |> Enum.filter(& &1 != nil)
+        |> Enum.map(fn {cx, _cy, color} ->
+          [cx,
+           Color.scale_color_component(color.red),
+           Color.scale_color_component(color.green),
+           Color.scale_color_component(color.blue)]
+        end)
+
+      Phoenix.PubSub.broadcast(pubsub_server, topic, {:row_ready, %{y: cy, pixels: pixels}})
+    end, ordered: false, max_concurrency: System.schedulers_online())
+    |> Stream.run()
+
+    total_ms = System.monotonic_time(:millisecond) - total_start
+    Phoenix.PubSub.broadcast(pubsub_server, topic, {:trace_done, %{ms: total_ms}})
+  end
+
   defp find_hit(ray, sphere) do
     # Find the intersections, extract only the values from the map, then find hits
     Ray.ray_intersect(sphere, ray) |> Map.values() |> Intersection.hit()

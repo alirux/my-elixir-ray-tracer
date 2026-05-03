@@ -4,45 +4,52 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-An Elixir ray tracer following "The Ray Tracer Challenge" by Jamis Buck. No external dependencies.
+An Elixir umbrella project implementing a ray tracer following "The Ray Tracer Challenge" by Jamis Buck, with a Phoenix LiveView web frontend that streams the rendered image row by row.
 
 ## Commands
 
+All commands run from the umbrella root unless noted.
+
 ```bash
-mix test                          # run all tests
-mix test test/matrix/matrix_test.exs  # run a single test file
-mix start                         # run the ray tracer, outputs to /tmp/sphere.ppm
+mix test                                                        # run all tests (both apps)
+mix test apps/my_elixir_ray_tracer/test/matrix/matrix_test.exs # run a single test file
+mix phx.server                                                  # start the web server at localhost:4000
+iex -S mix phx.server                                          # start server with interactive shell
+mix start                                                       # CLI ray trace, outputs to /tmp/sphere.ppm
 ```
 
 ## Architecture
 
-The pipeline is: `Raytracer` → `Ray` → `Intersection` → `Material`/`PointLight` → `Canvas` → PPM file.
+Two apps in `apps/`:
 
-**Math primitives**
+**`my_elixir_ray_tracer`** — core ray tracer (no web dependencies)
+
+The rendering pipeline: `Raytracer` → `Ray` → `Intersection` → `Material`/`PointLight` → `Canvas` → PPM file.
+
 - `Tuple` — points (`w=1`) and vectors (`w=0`), all arithmetic, normalize, dot/cross product, reflect
-- `Matrix` — matrices stored as plain Elixir maps; element at row `r`, col `c` is keyed by the float `r + c/10.0` (e.g. `m[1.2]` is row 1, col 2). Supports multiply, transpose, determinant, cofactor, inverse
-- `Common` — floating-point equality with tolerance `0.00001`
+- `Matrix` — maps keyed by `row + col/10.0` (e.g. `m[1.2]` = row 1, col 2); multiply, transpose, determinant, inverse
 - `Color` — RGB struct with arithmetic and Hadamard product
-- `Transformations` — translation, scaling, rotation (x/y/z axes), shearing as chainable matrix builders
+- `Common` — float equality with tolerance `0.00001`
+- `Transformations` — translation, scaling, rotation, shearing as chainable matrix builders starting from `identity_matrix4x4()`
+- `Sphere` — struct `{:transform, :material}`; `sphere_normal_at/2` uses the inverse-transpose
+- `Material` — Phong parameters; `lighting/5` computes full Phong shading
+- `PointLight` — struct `{:position, :intensity}`
+- `Ray` — struct `{:origin, :direction}`; `ray_intersect/2` applies the sphere's inverse transform before the quadratic
+- `Intersection` — struct `{:time, :object}`; `hit/1` returns the first non-negative hit
+- `Canvas` — 2D pixel grid (map); `save_canvas/2` writes PPM
+- `Raytracer` — two entry points: `trace/0` (PPM to disk) and `trace_streaming/2` (broadcasts rows via PubSub for the web frontend)
+- `World` — in progress; stub returning `[]` from `world_intersect/2`
+- `lib/exercises/` — standalone projectile/clock demos, not part of the pipeline
 
-**Scene objects**
-- `Sphere` — struct with `:transform` (4×4 matrix) and `:material`; `sphere_normal_at/2` transforms the normal through the inverse-transpose
-- `Material` — Phong parameters (ambient, diffuse, specular, shininess, color); `lighting/5` computes the full Phong shading
-- `PointLight` — struct with `:position` and `:intensity`
-- `Ray` — struct with `:origin` and `:direction`; `ray_intersect/2` applies the sphere's inverse transform to the ray before computing the quadratic discriminant
-- `Intersection` — struct `{:time, :object}`; `hit/1` returns the first non-negative intersection from a sorted list
+**`ray_tracer_web`** — Phoenix 1.8 LiveView frontend
 
-**Rendering**
-- `Canvas` — 2D pixel grid backed by a map; `write_pixel/4` and `save_canvas/2` (PPM format)
-- `Raytracer` — drives the scan loop; for each canvas pixel it casts a ray, finds the nearest hit, computes the Phong color, and writes the pixel. Output goes to `/tmp/sphere.ppm`
-
-**In progress**
-- `World` — container for a light and a list of objects; `world_intersect/2` is a stub returning `[]`
-
-**Exercises** (`lib/exercises/`) — standalone demos (projectile, clock) that predate the full ray tracer; not part of the rendering pipeline.
+- `TracerLive` — single LiveView; "Start Render" button spawns a `Task` that calls `Raytracer.trace_streaming/2`; rows arrive as `{:row_ready, %{y:, pixels:}}` PubSub messages and are forwarded to the browser via `push_event`
+- `RayCanvas` JS hook (`priv/static/assets/js/app.js`) — draws each row using `putImageData` on an HTML5 canvas
+- Phoenix and LiveView JS are served as UMD bundles from their hex packages via `Plug.Static` at `/vendor/`; no asset build step (esbuild not used)
+- PubSub server is `RayTracerWeb.PubSub` (owned by the web app); `trace_streaming/2` accepts it as a parameter so the core app has no web dependency
 
 ## Key conventions
 
-- Modules use `import` (not `alias`) to pull in sibling modules, making their constructors and functions available unqualified.
+- Core modules use `import` (not `alias`) to pull in siblings, so their constructors and functions are available unqualified.
 - Matrix cell access always uses the float key encoding: `matrix[row + col/10.0]`.
-- Transformation chains start from `identity_matrix4x4()` and are built with `|>`.
+- The CSRF token must be passed to `LiveSocket` in `app.js` via `params: {_csrf_token: csrfToken}` — without it LiveView refuses to connect.
