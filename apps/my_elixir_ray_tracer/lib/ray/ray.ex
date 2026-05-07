@@ -3,7 +3,6 @@ defmodule MyElixirRayTracer.Ray do
   alias MyElixirRayTracer.Ray
   alias MyElixirRayTracer.Tuple, as: RTTuple
   alias MyElixirRayTracer.Intersection
-  alias MyElixirRayTracer.Matrix
 
   defstruct [ :origin, :direction ]
 

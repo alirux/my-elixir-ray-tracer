@@ -2,8 +2,7 @@ defmodule MyElixirRayTracer.Tuple do
   @moduledoc """
   Definition and operations on tuples, points and vectors
   """
-  alias MyElixirRayTracer.Tuple;
-  alias MyElixirRayTracer.Matrix
+  alias MyElixirRayTracer.Tuple
   #alias Mix.Shell.IO, as: Shell
 
   import MyElixirRayTracer.Common
