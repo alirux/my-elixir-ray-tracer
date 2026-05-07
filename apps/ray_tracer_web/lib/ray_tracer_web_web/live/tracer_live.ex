@@ -47,7 +47,15 @@ defmodule RayTracerWebWeb.TracerLive do
   def render(assigns) do
     ~H"""
     <div style="font-family: monospace; padding: 24px;">
-      <h2 style="margin: 0 0 12px; font-size: 18px;">Elixir Ray Tracer</h2>
+      <h2 style="margin: 0 0 12px; font-size: 18px;">
+        Elixir Ray Tracer
+        <a href="https://github.com/alirux/my-elixir-ray-tracer"
+           target="_blank" rel="noopener noreferrer"
+           style="margin-left: 12px; font-size: 13px; font-weight: normal; color: #888; text-decoration: none;"
+           onmouseover="this.style.color='#ccc'" onmouseout="this.style.color='#888'">
+          GitHub ↗
+        </a>
+      </h2>
       <div style="margin-bottom: 8px;">
         <%= for {w, h} <- sizes() do %>
           <label style="margin-right: 16px; cursor: pointer;">
