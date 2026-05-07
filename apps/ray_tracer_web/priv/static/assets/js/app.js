@@ -9,9 +9,11 @@ Hooks.RayCanvas = {
     this.ctx.fillStyle = "#000";
     this.ctx.fillRect(0, 0, this.el.width, this.el.height);
 
-    this.handleEvent("clear_canvas", () => {
+    this.handleEvent("resize_canvas", ({width, height}) => {
+      this.el.width = width;
+      this.el.height = height;
       this.ctx.fillStyle = "#000";
-      this.ctx.fillRect(0, 0, this.el.width, this.el.height);
+      this.ctx.fillRect(0, 0, width, height);
     });
 
     this.handleEvent("row_ready", ({y, pixels}) => {
