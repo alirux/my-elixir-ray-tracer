@@ -118,8 +118,8 @@ defmodule MyElixirRayTracer.Raytracer do
   end
 
   defp find_hit(ray, sphere) do
-    # Find the intersections, extract only the values from the map, then find hits
-    Ray.ray_intersect(sphere, ray) |> Map.values() |> Intersection.hit()
+    # Find the intersections and find the first non-negative hit
+    Ray.ray_intersect(sphere, ray) |> Intersection.hit()
   end
 
   # Compute the color of a single pixel; returns {cx, cy, color} or nil on no hit

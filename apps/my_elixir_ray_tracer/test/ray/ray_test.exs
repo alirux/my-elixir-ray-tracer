@@ -27,52 +27,47 @@ defmodule MyElixirRayTracerTest.Ray do
   test "A ray intersect a sphere in two points" do
     ray = ray(point(0, 0, -5), vector(0, 0, 1))
     sphere = sphere()
-    intersections = ray_intersect(sphere, ray)
-    assert map_size(intersections) == 2
-    assert intersections[0].time == 4.0
-    assert intersections[0].object == sphere
-    assert intersections[1].time == 6.0
-    assert intersections[1].object == sphere
+    [i0, i1] = ray_intersect(sphere, ray)
+    assert i0.time == 4.0
+    assert i0.object == sphere
+    assert i1.time == 6.0
+    assert i1.object == sphere
   end
 
   test "A ray intersect a sphere at a tangent" do
     ray = ray(point(0, 1, -5), vector(0, 0, 1))
     sphere = sphere()
-    intersections = ray_intersect(sphere, ray)
-    assert map_size(intersections) == 2
-    assert intersections[0].time == 5.0
-    assert intersections[0].object == sphere
-    assert intersections[1].time == 5.0
-    assert intersections[1].object == sphere
+    [i0, i1] = ray_intersect(sphere, ray)
+    assert i0.time == 5.0
+    assert i0.object == sphere
+    assert i1.time == 5.0
+    assert i1.object == sphere
   end
 
   test "A ray misses a sphere" do
     ray = ray(point(0, 2, -5), vector(0, 0, 1))
     sphere = sphere()
-    intersections = ray_intersect(sphere, ray)
-    assert map_size(intersections) == 0
+    assert ray_intersect(sphere, ray) == []
   end
 
   test "A ray originates inside a sphere" do
     ray = ray(point(0, 0, 0), vector(0, 0, 1))
     sphere = sphere()
-    intersections = ray_intersect(sphere, ray)
-    assert map_size(intersections) == 2
-    assert intersections[0].time == -1.0
-    assert intersections[0].object == sphere
-    assert intersections[1].time == 1.0
-    assert intersections[1].object == sphere
+    [i0, i1] = ray_intersect(sphere, ray)
+    assert i0.time == -1.0
+    assert i0.object == sphere
+    assert i1.time == 1.0
+    assert i1.object == sphere
   end
 
   test "A sphere is behind a ray" do
     ray = ray(point(0, 0, 5), vector(0, 0, 1))
     sphere = sphere()
-    intersections = ray_intersect(sphere, ray)
-    assert map_size(intersections) == 2
-    assert intersections[0].time == -6.0
-    assert intersections[0].object == sphere
-    assert intersections[1].time == -4.0
-    assert intersections[1].object == sphere
+    [i0, i1] = ray_intersect(sphere, ray)
+    assert i0.time == -6.0
+    assert i0.object == sphere
+    assert i1.time == -4.0
+    assert i1.object == sphere
   end
 
   test "Translating a ray" do
@@ -94,17 +89,15 @@ defmodule MyElixirRayTracerTest.Ray do
   test "Intersecting a scaled sphere with a ray" do
     r = ray(point(0, 0, -5), vector(0, 0, 1))
     s = sphere(identity_matrix4x4() |> scaling(2, 2, 2))
-    xs = ray_intersect(s, r)
-    assert map_size(xs) == 2
-    assert xs[0].time == 3
-    assert xs[1].time == 7
+    [i0, i1] = ray_intersect(s, r)
+    assert i0.time == 3
+    assert i1.time == 7
   end
 
   test "Intersecting a traslated sphere with a ray" do
     r = ray(point(0, 0, -5), vector(0, 0, 1))
     s = sphere(identity_matrix4x4() |> translation(5, 0, 0))
-    xs = ray_intersect(s, r)
-    assert map_size(xs) == 0
+    assert ray_intersect(s, r) == []
   end
 
 end

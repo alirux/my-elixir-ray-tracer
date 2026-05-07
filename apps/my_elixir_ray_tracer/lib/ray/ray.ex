@@ -33,12 +33,12 @@ defmodule MyElixirRayTracer.Ray do
     c = RTTuple.dot(sphere_center_to_ray_origin_vector, sphere_center_to_ray_origin_vector) - 1
     discriminant = b * b - 4 * a * c;
     if discriminant < 0 do
-      %{}
+      []
     else
       determinant_sqrt = :math.sqrt(discriminant)
       t1 = ( - b - determinant_sqrt) / ( 2 * a )
       t2 = ( - b + determinant_sqrt) / ( 2 * a )
-      %{ 0 => Intersection.intersection(t1, sphere), 1 => Intersection.intersection(t2, sphere) }
+      [Intersection.intersection(t1, sphere), Intersection.intersection(t2, sphere)]
     end
   end
 

@@ -56,7 +56,7 @@ defmodule MyElixirRayTracer.Tuple do
   @doc """
   Magnitude of a Tuple
   """
-  def magnitude(a), do: :math.sqrt(:math.pow(a.x, 2) + :math.pow(a.y, 2) + :math.pow(a.z, 2) + :math.pow(a.w, 2))
+  def magnitude(a), do: :math.sqrt(a.x * a.x + a.y * a.y + a.z * a.z + a.w * a.w)
 
   @doc """
   Normalize a Tuple
@@ -83,15 +83,19 @@ defmodule MyElixirRayTracer.Tuple do
   end
 
   @doc """
-  Transform the tuple (translation, scaling, ...) by multiplying the transformation matrix by the tuple
+  Transform the tuple (translation, scaling, ...) by multiplying the transformation matrix by the tuple.
+  Pattern-matches all 16 matrix elements directly to avoid per-element function call overhead.
   """
-  def tuple_transform(trans_matrix, t) do
-    #Shell.info("(#{t.x}, #{t.y}, #{t.z}, #{t.w}) #{Matrix.at(trans_matrix, 0, 0)} #{Matrix.at(trans_matrix, 0, 1)} #{Matrix.at(trans_matrix, 0, 2)} #{Matrix.at(trans_matrix, 0, 3)}")
+  def tuple_transform(%{data: d}, %{x: x, y: y, z: z, w: w}) do
+    {m00, m01, m02, m03,
+     m10, m11, m12, m13,
+     m20, m21, m22, m23,
+     m30, m31, m32, m33} = d
     tuple(
-      Matrix.at(trans_matrix, 0, 0) * t.x + Matrix.at(trans_matrix, 0, 1) * t.y + Matrix.at(trans_matrix, 0, 2) * t.z + Matrix.at(trans_matrix, 0, 3) * t.w,
-      Matrix.at(trans_matrix, 1, 0) * t.x + Matrix.at(trans_matrix, 1, 1) * t.y + Matrix.at(trans_matrix, 1, 2) * t.z + Matrix.at(trans_matrix, 1, 3) * t.w,
-      Matrix.at(trans_matrix, 2, 0) * t.x + Matrix.at(trans_matrix, 2, 1) * t.y + Matrix.at(trans_matrix, 2, 2) * t.z + Matrix.at(trans_matrix, 2, 3) * t.w,
-      Matrix.at(trans_matrix, 3, 0) * t.x + Matrix.at(trans_matrix, 3, 1) * t.y + Matrix.at(trans_matrix, 3, 2) * t.z + Matrix.at(trans_matrix, 3, 3) * t.w
+      m00 * x + m01 * y + m02 * z + m03 * w,
+      m10 * x + m11 * y + m12 * z + m13 * w,
+      m20 * x + m21 * y + m22 * z + m23 * w,
+      m30 * x + m31 * y + m32 * z + m33 * w
     )
   end
 
