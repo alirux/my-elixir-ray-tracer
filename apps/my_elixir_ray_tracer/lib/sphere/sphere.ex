@@ -5,43 +5,31 @@ defmodule MyElixirRayTracer.Sphere do
   alias MyElixirRayTracer.Material
 
   @doc """
-  A sphere
+  A sphere. inverse_transform and inverse_transpose_transform are pre-computed
+  at construction time so they are not recomputed on every ray intersection.
   """
-  defstruct radius: 1, transform: Matrix.identity_matrix4x4(), material: Material.material()
+  defstruct [:radius, :transform, :inverse_transform, :inverse_transpose_transform, :material]
 
-  @doc """
-  Build a default sphere
-  """
-  def sphere() do
-    %MyElixirRayTracer.Sphere {}
+  defp build(transform, material) do
+    {:ok, inv} = Matrix.matrix_inverse(transform)
+    inv_t = Matrix.matrix_transpose(inv)
+    %MyElixirRayTracer.Sphere{
+      radius: 1,
+      transform: transform,
+      inverse_transform: inv,
+      inverse_transpose_transform: inv_t,
+      material: material
+    }
   end
 
-  @doc """
-  Build a sphere with a specific transform
-  """
-  def sphere(transform) do
-    %MyElixirRayTracer.Sphere { transform: transform }
-  end
+  def sphere(), do: build(Matrix.identity_matrix4x4(), Material.material())
+  def sphere(transform), do: build(transform, Material.material())
+  def sphere(transform, material), do: build(transform, material)
 
-  @doc """
-  Build a sphere with a specific transform and material
-  """
-  def sphere(transform, material) do
-    %MyElixirRayTracer.Sphere { transform: transform, material: material }
-  end
-
-  @doc """
-  Find the normal on a sphere at the point specified
-  """
   def sphere_normal_at(sphere, world_point) do
-    #IO.inspect(world_point)
-    object_point = sphere.transform |> Matrix.matrix_inverse!() |> RTTuple.tuple_transform(world_point)
-    #IO.inspect(object_point)
+    object_point = RTTuple.tuple_transform(sphere.inverse_transform, world_point)
     object_normal = RTTuple.minus(object_point, RTTuple.point(0, 0, 0))
-    #IO.inspect(object_normal)
-    world_normal = sphere.transform |> Matrix.matrix_inverse!() |> Matrix.matrix_transpose() |> RTTuple.tuple_transform(object_normal)
-    #IO.inspect(world_normal)
-    #IO.inspect(magnitude(world_normal))
+    world_normal = RTTuple.tuple_transform(sphere.inverse_transpose_transform, object_normal)
     RTTuple.normalize %MyElixirRayTracer.Tuple{ world_normal | w: 0 }
   end
 
