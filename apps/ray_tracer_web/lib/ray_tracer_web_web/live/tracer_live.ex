@@ -136,104 +136,248 @@ defmodule RayTracerWebWeb.TracerLive do
         </a>
       </h2>
 
-      <%!-- Canvas size --%>
-      <div style="margin-bottom: 8px;">
-        <%= for {w, h} <- sizes() do %>
-          <label style="margin-right: 16px; cursor: pointer;">
-            <input type="radio" name="size" value={"#{w}x#{h}"}
-                   checked={@canvas_w == w && @canvas_h == h}
-                   disabled={@status == :tracing}
-                   phx-click="set_size" phx-value-size={"#{w}x#{h}"} />
-            <%= w %>×<%= h %>
-          </label>
-        <% end %>
+      <%
+        s = 0.2
+        clamp = fn v, lo, hi -> min(hi, max(lo, round(v))) end
+        sr = max(10, round(@canvas_w / 15))
+        # Top view (X-Z)
+        xz_ox = 130; xz_oz = 44
+        ex_xz = clamp.(xz_ox + @eye.x   * s, 8, 252)
+        ez_xz = clamp.(xz_oz - @eye.z   * s, 8, 232)
+        lx_xz = clamp.(xz_ox + @light.x * s, 8, 252)
+        lz_xz = clamp.(xz_oz - @light.z * s, 8, 232)
+        # Front view (X-Y)
+        xy_ox = 130; xy_oy = 120
+        ex_xy = clamp.(xy_ox + @eye.x   * s, 8, 252)
+        ey_xy = clamp.(xy_oy - @eye.y   * s, 8, 232)
+        lx_xy = clamp.(xy_ox + @light.x * s, 8, 252)
+        ly_xy = clamp.(xy_oy - @light.y * s, 8, 232)
+        # Isometric 3D projection (ground plane = X-Z, Y vertical):
+        #   +X → lower-right, +Y → up, +Z (away from viewer) → upper-right,
+        #   -Z (toward viewer) → lower-left. Ground-level points (Y=0) stay
+        #   at the sphere's vertical level, so height reads correctly.
+        # svg_x = ox + (x + z) * cos30 * s3
+        # svg_y = oy + (x - z) * sin30 * s3 - y * s3
+        s3 = 0.13; iso_ox = 130; iso_oy = 120
+        iso = fn x, y, z ->
+          {clamp.(iso_ox + (x + z) * 0.866 * s3, 8, 252),
+           clamp.(iso_oy + (x - z) * 0.5 * s3 - y * s3, 8, 232)}
+        end
+        iso_sr = max(8, round(@canvas_w / 3 * s3))
+        {e3x, e3y} = iso.(@eye.x, @eye.y, @eye.z)
+        {l3x, l3y} = iso.(@light.x, @light.y, @light.z)
+        # Axis endpoints (length 850 world units)
+        {axx, axy} = iso.(850, 0, 0)
+        {ayx, ayy} = iso.(0, 850, 0)
+        {azx, azy} = iso.(0, 0, 850)
+        {nzx, nzy} = iso.(0, 0, -560)   # -Z stub (toward viewer)
+        # Arrowhead helper: tip (tx,ty), unit direction (dx,dy)
+        arrowhead = fn tx, ty, dx, dy ->
+          px = -dy; py = dx
+          "#{tx},#{ty} #{round(tx - 8*dx + 4*px)},#{round(ty - 8*dy + 4*py)} #{round(tx - 8*dx - 4*px)},#{round(ty - 8*dy - 4*py)}"
+        end
+        arr_x  = arrowhead.(axx, axy, 0.866,  0.5)   # X: lower-right
+        arr_y  = arrowhead.(ayx, ayy, 0.0,   -1.0)   # Y: up
+        arr_z  = arrowhead.(azx, azy, 0.866, -0.5)   # +Z: upper-right (away)
+      %>
+
+      <%!-- Main two-column layout --%>
+      <div style="display: flex; gap: 32px; align-items: flex-start;">
+
+        <%!-- LEFT: all controls + buttons --%>
+        <div style="flex-shrink: 0; width: 340px;">
+
+          <%!-- Canvas size --%>
+          <div style="margin-bottom: 12px;">
+            <%= for {w, h} <- sizes() do %>
+              <label style="margin-right: 16px; cursor: pointer;">
+                <input type="radio" name="size" value={"#{w}x#{h}"}
+                       checked={@canvas_w == w && @canvas_h == h}
+                       disabled={@status == :tracing}
+                       phx-click="set_size" phx-value-size={"#{w}x#{h}"} />
+                <%= w %>×<%= h %>
+              </label>
+            <% end %>
+          </div>
+
+          <%!-- Material --%>
+          <form phx-change="set_material" style="margin-bottom: 12px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 4px 12px;">
+            <label>Color</label>
+            <input type="color" name="color" value={@mat.color} disabled={@status == :tracing} style="width: 48px; height: 24px; padding: 0; border: none; cursor: pointer;" />
+            <span></span>
+            <label>Ambient</label>
+            <input type="range" name="ambient" min="0" max="1" step="0.01" value={@mat.ambient} disabled={@status == :tracing} />
+            <span style="font-size: 11px; color: #888; width: 36px; text-align: right; display: inline-block;"><%= @mat.ambient %></span>
+            <label>Diffuse</label>
+            <input type="range" name="diffuse" min="0" max="1" step="0.01" value={@mat.diffuse} disabled={@status == :tracing} />
+            <span style="font-size: 11px; color: #888; width: 36px; text-align: right; display: inline-block;"><%= @mat.diffuse %></span>
+            <label>Specular</label>
+            <input type="range" name="specular" min="0" max="1" step="0.01" value={@mat.specular} disabled={@status == :tracing} />
+            <span style="font-size: 11px; color: #888; width: 36px; text-align: right; display: inline-block;"><%= @mat.specular %></span>
+            <label>Shininess</label>
+            <input type="range" name="shininess" min="1" max="300" step="1" value={@mat.shininess} disabled={@status == :tracing} />
+            <span style="font-size: 11px; color: #888; width: 36px; text-align: right; display: inline-block;"><%= @mat.shininess %></span>
+          </form>
+
+          <%!-- Eye --%>
+          <form phx-change="set_eye" style="margin-bottom: 12px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 4px 12px;">
+            <label>Eye X</label>
+            <input type="range" name="x" min="-600" max="600" step="10" value={@eye.x} disabled={@status == :tracing} />
+            <span style="font-size: 11px; color: #888; width: 36px; text-align: right; display: inline-block;"><%= @eye.x %></span>
+            <label>Eye Y</label>
+            <input type="range" name="y" min="-600" max="600" step="10" value={@eye.y} disabled={@status == :tracing} />
+            <span style="font-size: 11px; color: #888; width: 36px; text-align: right; display: inline-block;"><%= @eye.y %></span>
+            <label>Eye Z</label>
+            <input type="range" name="z" min="-800" max="-50" step="10" value={@eye.z} disabled={@status == :tracing} />
+            <span style="font-size: 11px; color: #888; width: 36px; text-align: right; display: inline-block;"><%= @eye.z %></span>
+          </form>
+
+          <%!-- Light --%>
+          <form phx-change="set_light" style="margin-bottom: 16px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 4px 12px;">
+            <label>Light color</label>
+            <input type="color" name="color" value={@light.color} disabled={@status == :tracing} style="width: 48px; height: 24px; padding: 0; border: none; cursor: pointer;" />
+            <span></span>
+            <label>Light X</label>
+            <input type="range" name="x" min="-600" max="600" step="10" value={@light.x} disabled={@status == :tracing} />
+            <span style="font-size: 11px; color: #888; width: 36px; text-align: right; display: inline-block;"><%= @light.x %></span>
+            <label>Light Y</label>
+            <input type="range" name="y" min="-600" max="600" step="10" value={@light.y} disabled={@status == :tracing} />
+            <span style="font-size: 11px; color: #888; width: 36px; text-align: right; display: inline-block;"><%= @light.y %></span>
+            <label>Light Z</label>
+            <input type="range" name="z" min="-600" max="600" step="10" value={@light.z} disabled={@status == :tracing} />
+            <span style="font-size: 11px; color: #888; width: 36px; text-align: right; display: inline-block;"><%= @light.z %></span>
+          </form>
+
+          <%!-- Buttons + status --%>
+          <div style="margin-bottom: 16px;">
+            <button phx-click="start_trace" disabled={@status == :tracing}
+                    style="padding: 8px 20px; cursor: pointer; font-family: monospace;">
+              <%= cond do %>
+                <% @status == :tracing -> %>Tracing… (<%= @rows_done %> rows done)
+                <% @status == :done    -> %>Render Again
+                <% true                -> %>Start Render
+              <% end %>
+            </button>
+            <button phx-click="reset" disabled={@status == :tracing}
+                    style="padding: 8px 16px; cursor: pointer; font-family: monospace; margin-left: 8px;">
+              Reset
+            </button>
+            <div style="margin-top: 8px; font-size: 12px; color: #888;">
+              <%= @cores %> cores
+              <%= if @total_ms do %>
+                · Rendered in <%= @total_ms %>ms
+              <% end %>
+            </div>
+          </div>
+
+        </div>
+
+        <%!-- RIGHT: diagrams side by side + rendered canvas below --%>
+        <div>
+
+          <%!-- Diagrams 2x2 grid: TL=3D, TR=X-Y, BL=X-Z, BR=empty --%>
+          <div style="display: grid; grid-template-columns: 260px 260px; gap: 16px; margin-bottom: 16px;">
+
+            <%!-- Top-left: isometric 3D --%>
+            <div>
+              <div style="font-size: 10px; color: #555; margin-bottom: 4px;">3D view · isometric</div>
+              <svg width="260" height="240" style="border: 1px solid #2a2a2a; background: #0d0d0d; display: block;">
+                <%!-- +Z axis (away from viewer, upper-right, dashed) --%>
+                <line x1="130" y1="120" x2={azx} y2={azy} stroke="#2a2a2a" stroke-width="1" stroke-dasharray="4,3"/>
+                <polygon points={arr_z} fill="#2a2a2a"/>
+                <text x={azx + 4} y={azy - 2} fill="#2a2a2a" font-size="9" font-family="monospace">+Z</text>
+                <%!-- -Z stub (toward viewer, lower-left) --%>
+                <line x1="130" y1="120" x2={nzx} y2={nzy} stroke="#222" stroke-width="1"/>
+                <text x="6" y="234" fill="#333" font-size="8" font-family="monospace">-Z toward viewer</text>
+                <%!-- X axis (lower-right) --%>
+                <line x1="130" y1="120" x2={axx} y2={axy} stroke="#555" stroke-width="1"/>
+                <polygon points={arr_x} fill="#555"/>
+                <text x={axx + 4} y={axy + 8} fill="#555" font-size="10" font-family="monospace">X</text>
+                <%!-- Y axis (up) --%>
+                <line x1="130" y1="120" x2={ayx} y2={ayy} stroke="#555" stroke-width="1"/>
+                <polygon points={arr_y} fill="#555"/>
+                <text x={ayx + 6} y={ayy + 9} fill="#555" font-size="10" font-family="monospace">Y</text>
+                <%!-- Sphere --%>
+                <circle cx="130" cy="120" r={iso_sr} fill="none" stroke="#444" stroke-width="1" stroke-dasharray="4,2"/>
+                <circle cx="130" cy="120" r="2" fill="#666"/>
+                <%!-- Lines to sphere --%>
+                <line x1={e3x} y1={e3y} x2="130" y2="120" stroke="#4af"    stroke-width="1" opacity="0.5" stroke-dasharray="3,2"/>
+                <line x1={l3x} y1={l3y} x2="130" y2="120" stroke="#ffd055" stroke-width="1" opacity="0.5" stroke-dasharray="3,2"/>
+                <%!-- Eye --%>
+                <circle cx={e3x} cy={e3y} r="6" fill="#4af"/>
+                <text x={e3x + 8} y={e3y + 4} fill="#4af" font-size="9" font-family="monospace">eye</text>
+                <%!-- Light --%>
+                <circle cx={l3x} cy={l3y} r="6" fill="#ffd055"/>
+                <text x={l3x + 8} y={l3y + 4} fill="#ffd055" font-size="9" font-family="monospace">light</text>
+              </svg>
+            </div>
+
+            <%!-- Top-right: front view (X-Y) --%>
+            <div>
+              <div style="font-size: 10px; color: #555; margin-bottom: 4px;">front view · X-Y · Z⊙</div>
+              <svg width="260" height="240" style="border: 1px solid #2a2a2a; background: #0d0d0d; display: block;">
+                <line x1="130" y1="4"   x2="130" y2="236" stroke="#1a1a1a" stroke-width="1"/>
+                <line x1="4"   y1="120" x2="256" y2="120" stroke="#1a1a1a" stroke-width="1"/>
+                <line x1="130" y1="120" x2="248" y2="120" stroke="#333" stroke-width="1"/>
+                <polygon points="252,120 244,116 244,124" fill="#333"/>
+                <line x1="130" y1="120" x2="130" y2="12"  stroke="#333" stroke-width="1"/>
+                <polygon points="130,8 126,16 134,16" fill="#333"/>
+                <text x="240" y="114" fill="#444" font-size="10" font-family="monospace">X</text>
+                <text x="134" y="18"  fill="#444" font-size="10" font-family="monospace">Y</text>
+                <circle cx="130" cy="120" r="7" fill="none" stroke="#3a3a3a" stroke-width="1"/>
+                <circle cx="130" cy="120" r="2" fill="#3a3a3a"/>
+                <text x="140" y="116" fill="#3a3a3a" font-size="8" font-family="monospace">Z</text>
+                <circle cx="130" cy="120" r={sr} fill="none" stroke="#444" stroke-width="1" stroke-dasharray="4,2"/>
+                <text x="134" y="116" fill="#444" font-size="8" font-family="monospace">sphere</text>
+                <line x1={ex_xy} y1={ey_xy} x2="130" y2="120" stroke="#4af"    stroke-width="1" opacity="0.4" stroke-dasharray="3,2"/>
+                <line x1={lx_xy} y1={ly_xy} x2="130" y2="120" stroke="#ffd055" stroke-width="1" opacity="0.4" stroke-dasharray="3,2"/>
+                <circle cx={ex_xy} cy={ey_xy} r="6" fill="#4af"/>
+                <text x={ex_xy + 8} y={ey_xy + 4} fill="#4af"    font-size="9" font-family="monospace">eye</text>
+                <circle cx={lx_xy} cy={ly_xy} r="6" fill="#ffd055"/>
+                <text x={lx_xy + 8} y={ly_xy + 4} fill="#ffd055" font-size="9" font-family="monospace">light</text>
+              </svg>
+            </div>
+
+            <%!-- Bottom-left: top view (X-Z) --%>
+            <div>
+              <div style="font-size: 10px; color: #555; margin-bottom: 4px;">top view · X-Z · Y⊙</div>
+              <svg width="260" height="240" style="border: 1px solid #2a2a2a; background: #0d0d0d; display: block;">
+                <line x1="130" y1="4"  x2="130" y2="236" stroke="#1a1a1a" stroke-width="1"/>
+                <line x1="4"   y1="44" x2="256" y2="44"  stroke="#1a1a1a" stroke-width="1"/>
+                <line x1="130" y1="44" x2="248" y2="44"  stroke="#333" stroke-width="1"/>
+                <polygon points="252,44 244,40 244,48" fill="#333"/>
+                <line x1="130" y1="44" x2="130" y2="12"  stroke="#333" stroke-width="1"/>
+                <polygon points="130,8 126,16 134,16" fill="#333"/>
+                <text x="240" y="38" fill="#444" font-size="10" font-family="monospace">X</text>
+                <text x="134" y="18" fill="#444" font-size="10" font-family="monospace">Z</text>
+                <text x="4"   y="234" fill="#2a2a2a" font-size="8" font-family="monospace">-Z toward viewer</text>
+                <circle cx="130" cy="44" r="7" fill="none" stroke="#3a3a3a" stroke-width="1"/>
+                <circle cx="130" cy="44" r="2" fill="#3a3a3a"/>
+                <text x="140" y="40" fill="#3a3a3a" font-size="8" font-family="monospace">Y</text>
+                <circle cx="130" cy="44" r={sr} fill="none" stroke="#444" stroke-width="1" stroke-dasharray="4,2"/>
+                <text x="134" y="40" fill="#444" font-size="8" font-family="monospace">sphere</text>
+                <line x1={ex_xz} y1={ez_xz} x2="130" y2="44" stroke="#4af"    stroke-width="1" opacity="0.4" stroke-dasharray="3,2"/>
+                <line x1={lx_xz} y1={lz_xz} x2="130" y2="44" stroke="#ffd055" stroke-width="1" opacity="0.4" stroke-dasharray="3,2"/>
+                <circle cx={ex_xz} cy={ez_xz} r="6" fill="#4af"/>
+                <text x={ex_xz + 8} y={ez_xz + 4} fill="#4af"    font-size="9" font-family="monospace">eye</text>
+                <circle cx={lx_xz} cy={lz_xz} r="6" fill="#ffd055"/>
+                <text x={lx_xz + 8} y={lz_xz + 4} fill="#ffd055" font-size="9" font-family="monospace">light</text>
+              </svg>
+            </div>
+
+            <%!-- Bottom-right: intentionally empty --%>
+            <div></div>
+
+          </div>
+
+          <%!-- Rendered canvas --%>
+          <canvas id="ray-canvas" width={@canvas_w} height={@canvas_h}
+                  style="display: block; background: #000; border: 1px solid #333;"
+                  phx-hook="RayCanvas" phx-update="ignore">
+          </canvas>
+
+        </div>
       </div>
-
-      <%!-- Material parameters --%>
-      <form phx-change="set_material" style="margin-bottom: 12px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 4px 12px; max-width: 420px;">
-        <label>Color</label>
-        <input type="color" name="color" value={@mat.color} disabled={@status == :tracing} style="width: 48px; height: 24px; padding: 0; border: none; cursor: pointer;" />
-        <span></span>
-
-        <label>Ambient</label>
-        <input type="range" name="ambient" min="0" max="1" step="0.01" value={@mat.ambient} disabled={@status == :tracing} />
-        <span style="font-size: 11px; color: #888; width: 36px; text-align: right; display: inline-block;"><%= @mat.ambient %></span>
-
-        <label>Diffuse</label>
-        <input type="range" name="diffuse" min="0" max="1" step="0.01" value={@mat.diffuse} disabled={@status == :tracing} />
-        <span style="font-size: 11px; color: #888; width: 36px; text-align: right; display: inline-block;"><%= @mat.diffuse %></span>
-
-        <label>Specular</label>
-        <input type="range" name="specular" min="0" max="1" step="0.01" value={@mat.specular} disabled={@status == :tracing} />
-        <span style="font-size: 11px; color: #888; width: 36px; text-align: right; display: inline-block;"><%= @mat.specular %></span>
-
-        <label>Shininess</label>
-        <input type="range" name="shininess" min="1" max="300" step="1" value={@mat.shininess} disabled={@status == :tracing} />
-        <span style="font-size: 11px; color: #888; width: 36px; text-align: right; display: inline-block;"><%= @mat.shininess %></span>
-      </form>
-
-      <%!-- Eye position --%>
-      <form phx-change="set_eye" style="margin-bottom: 12px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 4px 12px; max-width: 420px;">
-        <label>Eye X</label>
-        <input type="range" name="x" min="-600" max="600" step="10" value={@eye.x} disabled={@status == :tracing} />
-        <span style="font-size: 11px; color: #888; width: 36px; text-align: right; display: inline-block;"><%= @eye.x %></span>
-
-        <label>Eye Y</label>
-        <input type="range" name="y" min="-600" max="600" step="10" value={@eye.y} disabled={@status == :tracing} />
-        <span style="font-size: 11px; color: #888; width: 36px; text-align: right; display: inline-block;"><%= @eye.y %></span>
-
-        <label>Eye Z</label>
-        <input type="range" name="z" min="-800" max="-50" step="10" value={@eye.z} disabled={@status == :tracing} />
-        <span style="font-size: 11px; color: #888; width: 36px; text-align: right; display: inline-block;"><%= @eye.z %></span>
-      </form>
-
-      <%!-- Light parameters --%>
-      <form phx-change="set_light" style="margin-bottom: 12px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 4px 12px; max-width: 420px;">
-        <label>Light color</label>
-        <input type="color" name="color" value={@light.color} disabled={@status == :tracing} style="width: 48px; height: 24px; padding: 0; border: none; cursor: pointer;" />
-        <span></span>
-
-        <label>Light X</label>
-        <input type="range" name="x" min="-600" max="600" step="10" value={@light.x} disabled={@status == :tracing} />
-        <span style="font-size: 11px; color: #888; width: 36px; text-align: right; display: inline-block;"><%= @light.x %></span>
-
-        <label>Light Y</label>
-        <input type="range" name="y" min="-600" max="600" step="10" value={@light.y} disabled={@status == :tracing} />
-        <span style="font-size: 11px; color: #888; width: 36px; text-align: right; display: inline-block;"><%= @light.y %></span>
-
-        <label>Light Z</label>
-        <input type="range" name="z" min="-600" max="600" step="10" value={@light.z} disabled={@status == :tracing} />
-        <span style="font-size: 11px; color: #888; width: 36px; text-align: right; display: inline-block;"><%= @light.z %></span>
-      </form>
-
-      <%!-- Start button --%>
-      <div style="margin-bottom: 12px;">
-        <button phx-click="start_trace" disabled={@status == :tracing}
-                style="padding: 8px 20px; cursor: pointer; font-family: monospace;">
-          <%= cond do %>
-            <% @status == :tracing -> %>Tracing… (<%= @rows_done %> rows done)
-            <% @status == :done    -> %>Render Again
-            <% true                -> %>Start Render
-          <% end %>
-        </button>
-        <button phx-click="reset" disabled={@status == :tracing}
-                style="padding: 8px 16px; cursor: pointer; font-family: monospace; margin-left: 8px;">
-          Reset
-        </button>
-        <span style="margin-left: 16px; font-size: 12px; color: #888;">
-          <%= @cores %> cores
-        </span>
-        <%= if @total_ms do %>
-          <span style="margin-left: 16px; font-size: 12px; color: #888;">
-            Rendered in <%= @total_ms %>ms
-          </span>
-        <% end %>
-      </div>
-
-      <canvas id="ray-canvas" width={@canvas_w} height={@canvas_h}
-              style="display: block; background: #000; border: 1px solid #333;"
-              phx-hook="RayCanvas" phx-update="ignore">
-      </canvas>
     </div>
     """
   end
