@@ -16,7 +16,8 @@ defmodule MyElixirRayTracer.Raytracer do
   def trace(canvas_w \\ 300, canvas_h \\ 300) do
     scene = build_scene(canvas_w, canvas_h,
       Material.material(Color.color(1, 0.2, 1), 0.1, 0.9, 0.9, 100),
-      PointLight.point_light(RTTuple.point(-400, 400, -400), Color.color(1, 1, 1))
+      PointLight.point_light(RTTuple.point(-400, 400, -400), Color.color(1, 1, 1)),
+      RTTuple.point(0, 0, -400)
     )
 
     canvas =
@@ -38,8 +39,9 @@ defmodule MyElixirRayTracer.Raytracer do
   """
   def trace_streaming(topic, pubsub_server, canvas_w \\ 300, canvas_h \\ 300,
         material \\ Material.material(Color.color(1, 0.2, 1), 0.1, 0.9, 0.9, 100),
-        light \\ PointLight.point_light(RTTuple.point(-400, 400, -400), Color.color(1, 1, 1))) do
-    scene = build_scene(canvas_w, canvas_h, material, light)
+        light \\ PointLight.point_light(RTTuple.point(-400, 400, -400), Color.color(1, 1, 1)),
+        eye_position \\ RTTuple.point(0, 0, -400)) do
+    scene = build_scene(canvas_w, canvas_h, material, light, eye_position)
 
     render_rows(scene, canvas_w, canvas_h, ordered: false)
     |> Stream.each(fn {:ok, {y, row_pixels}} ->
@@ -66,12 +68,10 @@ defmodule MyElixirRayTracer.Raytracer do
   end
 
   # Build the scene: canvas transform, eye, sphere, light, and record the start time
-  defp build_scene(canvas_w, canvas_h, material, light) do
+  defp build_scene(canvas_w, canvas_h, material, light, eye_position) do
     IO.puts("Tracing #{canvas_w}x#{canvas_h} canvas on #{System.schedulers_online()} cores...")
     # Transformation for the canvas: invert the y axis and translate (0,0) in the middle of the canvas
     canvas_trans = Matrix.identity_matrix4x4() |> Transformations.scaling(1, -1, 1) |> Transformations.translation(canvas_w / 2, canvas_h / 2, 0)
-    # Eye configuration
-    eye_position = RTTuple.point(0, 0, -400)
     # Sphere and material
     sphere_trans = Matrix.identity_matrix4x4() |> Transformations.scaling(canvas_w / 3, canvas_w / 3, canvas_w / 3)
     s = Sphere.sphere(sphere_trans, material)

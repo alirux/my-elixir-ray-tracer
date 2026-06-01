@@ -14,6 +14,7 @@ defmodule RayTracerWebWeb.TracerLive do
 
   @default_material %{color: "#ff33ff", ambient: 0.1, diffuse: 0.9, specular: 0.9, shininess: 100}
   @default_light %{color: "#ffffff", x: -400, y: 400, z: -400}
+  @default_eye %{x: 0, y: 0, z: -400}
 
   def mount(_params, _session, socket) do
     topic = "raytracer:render:#{socket.id}"
@@ -21,7 +22,8 @@ defmodule RayTracerWebWeb.TracerLive do
       status: :idle, rows_done: 0, total_ms: nil,
       topic: topic, canvas_w: 300, canvas_h: 300,
       mat: @default_material,
-      light: @default_light
+      light: @default_light,
+      eye: @default_eye
     )}
   end
 
@@ -41,6 +43,11 @@ defmodule RayTracerWebWeb.TracerLive do
     {:noreply, assign(socket, mat: mat)}
   end
 
+  def handle_event("set_eye", params, socket) do
+    eye = %{x: parse_int(params["x"]), y: parse_int(params["y"]), z: parse_int(params["z"])}
+    {:noreply, assign(socket, eye: eye)}
+  end
+
   def handle_event("set_light", params, socket) do
     light = %{
       color: params["color"],
@@ -52,11 +59,12 @@ defmodule RayTracerWebWeb.TracerLive do
   end
 
   def handle_event("start_trace", _params, socket) do
-    %{topic: topic, canvas_w: w, canvas_h: h, mat: mat, light: light_params} = socket.assigns
+    %{topic: topic, canvas_w: w, canvas_h: h, mat: mat, light: light_params, eye: eye_params} = socket.assigns
     Phoenix.PubSub.subscribe(@pubsub, topic)
     material = build_material(mat)
     light = build_light(light_params)
-    Task.start(fn -> Raytracer.trace_streaming(topic, @pubsub, w, h, material, light) end)
+    eye_position = RTTuple.point(eye_params.x, eye_params.y, eye_params.z)
+    Task.start(fn -> Raytracer.trace_streaming(topic, @pubsub, w, h, material, light, eye_position) end)
     {:noreply,
      socket
      |> assign(status: :tracing, rows_done: 0, total_ms: nil)
@@ -157,6 +165,21 @@ defmodule RayTracerWebWeb.TracerLive do
         <label>Shininess</label>
         <input type="range" name="shininess" min="1" max="300" step="1" value={@mat.shininess} disabled={@status == :tracing} />
         <span style="font-size: 11px; color: #888; width: 36px; text-align: right; display: inline-block;"><%= @mat.shininess %></span>
+      </form>
+
+      <%!-- Eye position --%>
+      <form phx-change="set_eye" style="margin-bottom: 12px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 4px 12px; max-width: 420px;">
+        <label>Eye X</label>
+        <input type="range" name="x" min="-600" max="600" step="10" value={@eye.x} disabled={@status == :tracing} />
+        <span style="font-size: 11px; color: #888; width: 36px; text-align: right; display: inline-block;"><%= @eye.x %></span>
+
+        <label>Eye Y</label>
+        <input type="range" name="y" min="-600" max="600" step="10" value={@eye.y} disabled={@status == :tracing} />
+        <span style="font-size: 11px; color: #888; width: 36px; text-align: right; display: inline-block;"><%= @eye.y %></span>
+
+        <label>Eye Z</label>
+        <input type="range" name="z" min="-800" max="-50" step="10" value={@eye.z} disabled={@status == :tracing} />
+        <span style="font-size: 11px; color: #888; width: 36px; text-align: right; display: inline-block;"><%= @eye.z %></span>
       </form>
 
       <%!-- Light parameters --%>
