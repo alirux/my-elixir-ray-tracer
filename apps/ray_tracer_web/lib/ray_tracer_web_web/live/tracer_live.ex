@@ -23,7 +23,8 @@ defmodule RayTracerWebWeb.TracerLive do
       topic: topic, canvas_w: 300, canvas_h: 300,
       mat: @default_material,
       light: @default_light,
-      eye: @default_eye
+      eye: @default_eye,
+      cores: System.schedulers_online()
     )}
   end
 
@@ -219,6 +220,9 @@ defmodule RayTracerWebWeb.TracerLive do
                 style="padding: 8px 16px; cursor: pointer; font-family: monospace; margin-left: 8px;">
           Reset
         </button>
+        <span style="margin-left: 16px; font-size: 12px; color: #888;">
+          <%= @cores %> cores
+        </span>
         <%= if @total_ms do %>
           <span style="margin-left: 16px; font-size: 12px; color: #888;">
             Rendered in <%= @total_ms %>ms
