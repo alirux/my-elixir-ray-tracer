@@ -89,7 +89,7 @@ defmodule MyElixirRayTracer.Raytracer do
     %{canvas_trans: canvas_trans, eye_position: eye_position,
       sphere: sphere, light: light, half_w: half_w, half_h: half_h} = scene
 
-    scene.half_h..-scene.half_h//-1
+    half_h..-half_h//-1
     |> Task.async_stream(fn y ->
       row_start = System.monotonic_time(:millisecond)
       row_pixels =
