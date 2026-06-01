@@ -51,8 +51,7 @@ defmodule RayTracerWebWeb.TracerLive do
         Elixir Ray Tracer
         <a href="https://github.com/alirux/my-elixir-ray-tracer"
            target="_blank" rel="noopener noreferrer"
-           style="margin-left: 12px; font-size: 13px; font-weight: normal; color: #888; text-decoration: none;"
-           onmouseover="this.style.color='#ccc'" onmouseout="this.style.color='#888'">
+           class="gh-link">
           GitHub ↗
         </a>
       </h2>

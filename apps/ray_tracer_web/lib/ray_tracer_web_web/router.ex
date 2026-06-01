@@ -7,7 +7,12 @@ defmodule RayTracerWebWeb.Router do
     plug :fetch_live_flash
     plug :put_root_layout, html: {RayTracerWebWeb.Layouts, :root}
     plug :protect_from_forgery
-    plug :put_secure_browser_headers
+    plug :put_secure_browser_headers, %{
+      "content-security-policy" =>
+        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ws: wss:",
+      "referrer-policy" => "strict-origin-when-cross-origin",
+      "strict-transport-security" => "max-age=63072000; includeSubDomains"
+    }
   end
 
   pipeline :api do

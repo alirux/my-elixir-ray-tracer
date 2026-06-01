@@ -2588,3 +2588,15 @@
   }
 }
 
+
+/* App-specific styles */
+.gh-link {
+  margin-left: 12px;
+  font-size: 13px;
+  font-weight: normal;
+  color: #888;
+  text-decoration: none;
+}
+.gh-link:hover {
+  color: #ccc;
+}
