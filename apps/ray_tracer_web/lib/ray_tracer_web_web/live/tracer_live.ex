@@ -166,10 +166,19 @@ defmodule RayTracerWebWeb.TracerLive do
         iso_sr = max(8, round(@canvas_w / 3 * s3))
         {e3x, e3y} = iso.(@eye.x, @eye.y, @eye.z)
         {l3x, l3y} = iso.(@light.x, @light.y, @light.z)
+        # Coordinate projections (drop lines): ground point + X/Z axis feet
+        {egx, egy} = iso.(@eye.x, 0, @eye.z)     # eye ground (x,0,z)
+        {eax, eay} = iso.(@eye.x, 0, 0)          # eye foot on X axis
+        {ezx, ezy} = iso.(0, 0, @eye.z)          # eye foot on Z axis
+        {lgx, lgy} = iso.(@light.x, 0, @light.z) # light ground (x,0,z)
+        {lax, lay} = iso.(@light.x, 0, 0)        # light foot on X axis
+        {lzx, lzy} = iso.(0, 0, @light.z)        # light foot on Z axis
         # Axis endpoints (length 850 world units)
         {axx, axy} = iso.(850, 0, 0)
         {ayx, ayy} = iso.(0, 850, 0)
         {azx, azy} = iso.(0, 0, 850)
+        {nxx, nxy} = iso.(-650, 0, 0)   # -X stub
+        {nyx, nyy} = iso.(0, -650, 0)   # -Y stub (below ground)
         {nzx, nzy} = iso.(0, 0, -560)   # -Z stub (toward viewer)
         # Arrowhead helper: tip (tx,ty), unit direction (dx,dy)
         arrowhead = fn tx, ty, dx, dy ->
@@ -286,8 +295,10 @@ defmodule RayTracerWebWeb.TracerLive do
                 <line x1="130" y1="120" x2={azx} y2={azy} stroke="#2a2a2a" stroke-width="1" stroke-dasharray="4,3"/>
                 <polygon points={arr_z} fill="#2a2a2a"/>
                 <text x={azx + 4} y={azy - 2} fill="#2a2a2a" font-size="9" font-family="monospace">+Z</text>
-                <%!-- -Z stub (toward viewer, lower-left) --%>
-                <line x1="130" y1="120" x2={nzx} y2={nzy} stroke="#222" stroke-width="1"/>
+                <%!-- Negative axis halves (faint) --%>
+                <line x1="130" y1="120" x2={nxx} y2={nxy} stroke="#2a2a2a" stroke-width="1"/>
+                <line x1="130" y1="120" x2={nyx} y2={nyy} stroke="#2a2a2a" stroke-width="1"/>
+                <line x1="130" y1="120" x2={nzx} y2={nzy} stroke="#2a2a2a" stroke-width="1"/>
                 <text x="6" y="234" fill="#333" font-size="8" font-family="monospace">-Z toward viewer</text>
                 <%!-- X axis (lower-right) --%>
                 <line x1="130" y1="120" x2={axx} y2={axy} stroke="#555" stroke-width="1"/>
@@ -298,8 +309,22 @@ defmodule RayTracerWebWeb.TracerLive do
                 <polygon points={arr_y} fill="#555"/>
                 <text x={ayx + 6} y={ayy + 9} fill="#555" font-size="10" font-family="monospace">Y</text>
                 <%!-- Sphere --%>
-                <circle cx="130" cy="120" r={iso_sr} fill="none" stroke="#444" stroke-width="1" stroke-dasharray="4,2"/>
-                <circle cx="130" cy="120" r="2" fill="#666"/>
+                <circle cx="130" cy="120" r={iso_sr} fill={@mat.color} fill-opacity="0.25" stroke={@mat.color} stroke-width="1" stroke-dasharray="4,2"/>
+                <circle cx="130" cy="120" r="2" fill={@mat.color}/>
+                <%!-- Eye coordinate projections (drop lines) --%>
+                <line x1={e3x} y1={e3y} x2={egx} y2={egy} stroke="#4af" stroke-width="1" opacity="0.25" stroke-dasharray="2,2"/>
+                <line x1={egx} y1={egy} x2={eax} y2={eay} stroke="#4af" stroke-width="1" opacity="0.25" stroke-dasharray="2,2"/>
+                <line x1={egx} y1={egy} x2={ezx} y2={ezy} stroke="#4af" stroke-width="1" opacity="0.25" stroke-dasharray="2,2"/>
+                <circle cx={egx} cy={egy} r="2" fill="#4af" opacity="0.4"/>
+                <circle cx={eax} cy={eay} r="2" fill="#4af" opacity="0.4"/>
+                <circle cx={ezx} cy={ezy} r="2" fill="#4af" opacity="0.4"/>
+                <%!-- Light coordinate projections (drop lines) --%>
+                <line x1={l3x} y1={l3y} x2={lgx} y2={lgy} stroke="#ffd055" stroke-width="1" opacity="0.25" stroke-dasharray="2,2"/>
+                <line x1={lgx} y1={lgy} x2={lax} y2={lay} stroke="#ffd055" stroke-width="1" opacity="0.25" stroke-dasharray="2,2"/>
+                <line x1={lgx} y1={lgy} x2={lzx} y2={lzy} stroke="#ffd055" stroke-width="1" opacity="0.25" stroke-dasharray="2,2"/>
+                <circle cx={lgx} cy={lgy} r="2" fill="#ffd055" opacity="0.4"/>
+                <circle cx={lax} cy={lay} r="2" fill="#ffd055" opacity="0.4"/>
+                <circle cx={lzx} cy={lzy} r="2" fill="#ffd055" opacity="0.4"/>
                 <%!-- Lines to sphere --%>
                 <line x1={e3x} y1={e3y} x2="130" y2="120" stroke="#4af"    stroke-width="1" opacity="0.5" stroke-dasharray="3,2"/>
                 <line x1={l3x} y1={l3y} x2="130" y2="120" stroke="#ffd055" stroke-width="1" opacity="0.5" stroke-dasharray="3,2"/>
@@ -327,7 +352,7 @@ defmodule RayTracerWebWeb.TracerLive do
                 <circle cx="130" cy="120" r="7" fill="none" stroke="#3a3a3a" stroke-width="1"/>
                 <circle cx="130" cy="120" r="2" fill="#3a3a3a"/>
                 <text x="140" y="116" fill="#3a3a3a" font-size="8" font-family="monospace">Z</text>
-                <circle cx="130" cy="120" r={sr} fill="none" stroke="#444" stroke-width="1" stroke-dasharray="4,2"/>
+                <circle cx="130" cy="120" r={sr} fill={@mat.color} fill-opacity="0.25" stroke={@mat.color} stroke-width="1" stroke-dasharray="4,2"/>
                 <text x="134" y="116" fill="#444" font-size="8" font-family="monospace">sphere</text>
                 <line x1={ex_xy} y1={ey_xy} x2="130" y2="120" stroke="#4af"    stroke-width="1" opacity="0.4" stroke-dasharray="3,2"/>
                 <line x1={lx_xy} y1={ly_xy} x2="130" y2="120" stroke="#ffd055" stroke-width="1" opacity="0.4" stroke-dasharray="3,2"/>
@@ -354,7 +379,7 @@ defmodule RayTracerWebWeb.TracerLive do
                 <circle cx="130" cy="44" r="7" fill="none" stroke="#3a3a3a" stroke-width="1"/>
                 <circle cx="130" cy="44" r="2" fill="#3a3a3a"/>
                 <text x="140" y="40" fill="#3a3a3a" font-size="8" font-family="monospace">Y</text>
-                <circle cx="130" cy="44" r={sr} fill="none" stroke="#444" stroke-width="1" stroke-dasharray="4,2"/>
+                <circle cx="130" cy="44" r={sr} fill={@mat.color} fill-opacity="0.25" stroke={@mat.color} stroke-width="1" stroke-dasharray="4,2"/>
                 <text x="134" y="40" fill="#444" font-size="8" font-family="monospace">sphere</text>
                 <line x1={ex_xz} y1={ez_xz} x2="130" y2="44" stroke="#4af"    stroke-width="1" opacity="0.4" stroke-dasharray="3,2"/>
                 <line x1={lx_xz} y1={lz_xz} x2="130" y2="44" stroke="#ffd055" stroke-width="1" opacity="0.4" stroke-dasharray="3,2"/>
