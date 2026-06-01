@@ -14,7 +14,7 @@ defmodule MyElixirRayTracer.Raytracer do
   @wall_z 0 # z of the wall on which the sphere is projected
 
   def trace(canvas_w \\ 300, canvas_h \\ 300) do
-    scene = build_scene(canvas_w, canvas_h)
+    scene = build_scene(canvas_w, canvas_h, Material.material(Color.color(1, 0.2, 1), 0.1, 0.9, 0.9, 100))
 
     canvas =
       render_rows(scene, canvas_w, canvas_h, ordered: true)
@@ -33,8 +33,8 @@ defmodule MyElixirRayTracer.Raytracer do
   Broadcasts {:row_ready, %{y: cy, pixels: [[x,r,g,b],...]}} per row (unordered)
   and {:trace_done, %{ms: total_ms}} when finished.
   """
-  def trace_streaming(topic, pubsub_server, canvas_w \\ 300, canvas_h \\ 300) do
-    scene = build_scene(canvas_w, canvas_h)
+  def trace_streaming(topic, pubsub_server, canvas_w \\ 300, canvas_h \\ 300, material \\ Material.material(Color.color(1, 0.2, 1), 0.1, 0.9, 0.9, 100)) do
+    scene = build_scene(canvas_w, canvas_h, material)
 
     render_rows(scene, canvas_w, canvas_h, ordered: false)
     |> Stream.each(fn {:ok, {y, row_pixels}} ->
@@ -61,7 +61,7 @@ defmodule MyElixirRayTracer.Raytracer do
   end
 
   # Build the scene: canvas transform, eye, sphere, light, and record the start time
-  defp build_scene(canvas_w, canvas_h) do
+  defp build_scene(canvas_w, canvas_h, material) do
     IO.puts("Tracing #{canvas_w}x#{canvas_h} canvas on #{System.schedulers_online()} cores...")
     # Transformation for the canvas: invert the y axis and translate (0,0) in the middle of the canvas
     canvas_trans = Matrix.identity_matrix4x4() |> Transformations.scaling(1, -1, 1) |> Transformations.translation(canvas_w / 2, canvas_h / 2, 0)
@@ -69,7 +69,6 @@ defmodule MyElixirRayTracer.Raytracer do
     eye_position = RTTuple.point(0, 0, -400)
     # Sphere and material
     sphere_trans = Matrix.identity_matrix4x4() |> Transformations.scaling(canvas_w / 3, canvas_w / 3, canvas_w / 3)
-    material = Material.material(Color.color(1, 0.2, 1), 0.1, 0.9, 0.9, 100)
     s = Sphere.sphere(sphere_trans, material)
     # Light configuration
     light = PointLight.point_light(RTTuple.point(-400, 400, -400), Color.color(1, 1, 1))
