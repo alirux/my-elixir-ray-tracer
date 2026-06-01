@@ -43,6 +43,10 @@ defmodule RayTracerWebWeb.TracerLive do
     {:noreply, assign(socket, mat: mat)}
   end
 
+  def handle_event("reset", _params, socket) do
+    {:noreply, assign(socket, mat: @default_material, light: @default_light, eye: @default_eye)}
+  end
+
   def handle_event("set_eye", params, socket) do
     eye = %{x: parse_int(params["x"]), y: parse_int(params["y"]), z: parse_int(params["z"])}
     {:noreply, assign(socket, eye: eye)}
@@ -210,6 +214,10 @@ defmodule RayTracerWebWeb.TracerLive do
             <% @status == :done    -> %>Render Again
             <% true                -> %>Start Render
           <% end %>
+        </button>
+        <button phx-click="reset" disabled={@status == :tracing}
+                style="padding: 8px 16px; cursor: pointer; font-family: monospace; margin-left: 8px;">
+          Reset
         </button>
         <%= if @total_ms do %>
           <span style="margin-left: 16px; font-size: 12px; color: #888;">
