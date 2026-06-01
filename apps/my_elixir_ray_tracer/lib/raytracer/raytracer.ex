@@ -14,50 +14,17 @@ defmodule MyElixirRayTracer.Raytracer do
   @wall_z 0 # z of the wall on which the sphere is projected
 
   def trace(canvas_w \\ 300, canvas_h \\ 300) do
-    # Canvas
-    canvas = Canvas.canvas(canvas_w, canvas_h, Color.color(0, 0, 0))
-    # Transformation for the canvas: invert the y axis and translate (0,0) in the middle of the canvas
-    canvas_trans = Matrix.identity_matrix4x4() |> Transformations.scaling(1, -1, 1) |> Transformations.translation(canvas_w / 2, canvas_h / 2, 0)
+    scene = build_scene(canvas_w, canvas_h)
 
-    # Eye configuration
-    eye_position = RTTuple.point(0, 0, -400)
-
-    # Sphere and material
-    sphere_trans = Matrix.identity_matrix4x4() |> Transformations.scaling(canvas_w / 3, canvas_w / 3, canvas_w / 3)
-    material = Material.material(Color.color(1, 0.2, 1), 0.1, 0.9, 0.9, 100)
-    s = Sphere.sphere(sphere_trans, material)
-
-    # Light configuration
-    light = PointLight.point_light(RTTuple.point(-400, 400, -400), Color.color(1, 1, 1))
-
-    # Start the ray tracing
-    half_w = trunc(canvas_w / 2)
-    half_h = trunc(canvas_h / 2)
-    IO.puts("Tracing #{canvas_w}x#{canvas_h} canvas on #{System.schedulers_online()} cores...")
-    total_start = System.monotonic_time(:millisecond)
-
-    # Compute pixel colors in parallel, one task per row
     canvas =
-      half_h..-half_h//-1
-      |> Task.async_stream(fn y ->
-        row_start = System.monotonic_time(:millisecond)
-        row_pixels =
-          for x <- -half_w..half_w do
-            ray_endpoint = RTTuple.point(x, y, @wall_z)
-            ray = Ray.ray(eye_position, RTTuple.normalize(RTTuple.minus(ray_endpoint, eye_position)))
-            trace_pixel(ray, ray_endpoint, canvas_trans, s, light, canvas_w, canvas_h)
-          end
-        IO.puts("Row #{y} — #{System.monotonic_time(:millisecond) - row_start}ms [#{inspect(self())}]")
-        row_pixels
-      end, ordered: true)
-      |> Enum.flat_map(fn {:ok, row} -> row end)
-      |> Enum.reduce(canvas, fn
+      render_rows(scene, canvas_w, canvas_h, ordered: true)
+      |> Enum.flat_map(fn {:ok, {_y, row_pixels}} -> row_pixels end)
+      |> Enum.reduce(Canvas.canvas(canvas_w, canvas_h, Color.color(0, 0, 0)), fn
         nil, acc -> acc
         {cx, cy, color}, acc -> Canvas.write_pixel(acc, cx, cy, color)
       end)
 
-    total_ms = System.monotonic_time(:millisecond) - total_start
-    IO.puts("Done in #{total_ms}ms (#{Float.round(total_ms / (canvas_w * canvas_h) * 1000, 2)}µs/pixel). Saving to /tmp/sphere.ppm")
+    log_done(canvas_w, canvas_h, scene.total_start, "Saving to /tmp/sphere.ppm")
     Canvas.save_canvas(canvas, "/tmp/sphere.ppm")
   end
 
@@ -67,34 +34,10 @@ defmodule MyElixirRayTracer.Raytracer do
   and {:trace_done, %{ms: total_ms}} when finished.
   """
   def trace_streaming(topic, pubsub_server, canvas_w \\ 300, canvas_h \\ 300) do
-    # Canvas transform: flip y axis and move origin to center
-    canvas_trans = Matrix.identity_matrix4x4() |> Transformations.scaling(1, -1, 1) |> Transformations.translation(canvas_w / 2, canvas_h / 2, 0)
+    scene = build_scene(canvas_w, canvas_h)
 
-    # Eye configuration
-    eye_position = RTTuple.point(0, 0, -400)
-
-    # Sphere and material
-    sphere_trans = Matrix.identity_matrix4x4() |> Transformations.scaling(canvas_w / 3, canvas_w / 3, canvas_w / 3)
-    material = Material.material(Color.color(1, 0.2, 1), 0.1, 0.9, 0.9, 100)
-    s = Sphere.sphere(sphere_trans, material)
-
-    # Light configuration
-    light = PointLight.point_light(RTTuple.point(-400, 400, -400), Color.color(1, 1, 1))
-
-    half_w = trunc(canvas_w / 2)
-    half_h = trunc(canvas_h / 2)
-    total_start = System.monotonic_time(:millisecond)
-
-    # Process rows in parallel; broadcast each as soon as it's done (unordered for live visual effect)
-    half_h..-half_h//-1
-    |> Task.async_stream(fn y ->
-      row_pixels =
-        for x <- -half_w..half_w do
-          ray_endpoint = RTTuple.point(x, y, @wall_z)
-          ray = Ray.ray(eye_position, RTTuple.normalize(RTTuple.minus(ray_endpoint, eye_position)))
-          trace_pixel(ray, ray_endpoint, canvas_trans, s, light, canvas_w, canvas_h)
-        end
-
+    render_rows(scene, canvas_w, canvas_h, ordered: false)
+    |> Stream.each(fn {:ok, {y, row_pixels}} ->
       # Canvas y for this world row
       cy = max(min(round(canvas_h / 2 - y), canvas_h - 1), 0)
 
@@ -110,11 +53,62 @@ defmodule MyElixirRayTracer.Raytracer do
         end)
 
       Phoenix.PubSub.broadcast(pubsub_server, topic, {:row_ready, %{y: cy, pixels: pixels}})
-    end, ordered: false, max_concurrency: System.schedulers_online())
+    end)
     |> Stream.run()
 
-    total_ms = System.monotonic_time(:millisecond) - total_start
+    total_ms = log_done(canvas_w, canvas_h, scene.total_start)
     Phoenix.PubSub.broadcast(pubsub_server, topic, {:trace_done, %{ms: total_ms}})
+  end
+
+  # Build the scene: canvas transform, eye, sphere, light, and record the start time
+  defp build_scene(canvas_w, canvas_h) do
+    IO.puts("Tracing #{canvas_w}x#{canvas_h} canvas on #{System.schedulers_online()} cores...")
+    # Transformation for the canvas: invert the y axis and translate (0,0) in the middle of the canvas
+    canvas_trans = Matrix.identity_matrix4x4() |> Transformations.scaling(1, -1, 1) |> Transformations.translation(canvas_w / 2, canvas_h / 2, 0)
+    # Eye configuration
+    eye_position = RTTuple.point(0, 0, -400)
+    # Sphere and material
+    sphere_trans = Matrix.identity_matrix4x4() |> Transformations.scaling(canvas_w / 3, canvas_w / 3, canvas_w / 3)
+    material = Material.material(Color.color(1, 0.2, 1), 0.1, 0.9, 0.9, 100)
+    s = Sphere.sphere(sphere_trans, material)
+    # Light configuration
+    light = PointLight.point_light(RTTuple.point(-400, 400, -400), Color.color(1, 1, 1))
+    %{
+      canvas_trans: canvas_trans,
+      eye_position: eye_position,
+      sphere: s,
+      light: light,
+      half_w: trunc(canvas_w / 2),
+      half_h: trunc(canvas_h / 2),
+      total_start: System.monotonic_time(:millisecond)
+    }
+  end
+
+  # Render all rows in parallel via Task.async_stream; returns a stream of {:ok, {y, row_pixels}}
+  defp render_rows(scene, canvas_w, canvas_h, opts) do
+    %{canvas_trans: canvas_trans, eye_position: eye_position,
+      sphere: sphere, light: light, half_w: half_w, half_h: half_h} = scene
+
+    scene.half_h..-scene.half_h//-1
+    |> Task.async_stream(fn y ->
+      row_start = System.monotonic_time(:millisecond)
+      row_pixels =
+        for x <- -half_w..half_w do
+          ray_endpoint = RTTuple.point(x, y, @wall_z)
+          ray = Ray.ray(eye_position, RTTuple.normalize(RTTuple.minus(ray_endpoint, eye_position)))
+          trace_pixel(ray, ray_endpoint, canvas_trans, sphere, light, canvas_w, canvas_h)
+        end
+      IO.puts("Row #{y} — #{System.monotonic_time(:millisecond) - row_start}ms [#{inspect(self())}]")
+      {y, row_pixels}
+    end, [max_concurrency: System.schedulers_online()] ++ opts)
+  end
+
+  # Log the completion summary; returns total_ms
+  defp log_done(canvas_w, canvas_h, total_start, suffix \\ nil) do
+    total_ms = System.monotonic_time(:millisecond) - total_start
+    msg = "Done in #{total_ms}ms (#{Float.round(total_ms / (canvas_w * canvas_h) * 1000, 2)}µs/pixel)."
+    IO.puts(if suffix, do: "#{msg} #{suffix}", else: msg)
+    total_ms
   end
 
   defp find_hit(ray, sphere) do
@@ -142,6 +136,5 @@ defmodule MyElixirRayTracer.Raytracer do
         {cx, cy, color}
     end
   end
-
 
 end
