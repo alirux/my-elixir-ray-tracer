@@ -4,6 +4,8 @@ defmodule RayTracerWebWeb.TracerLive do
   alias MyElixirRayTracer.Raytracer
   alias MyElixirRayTracer.Material
   alias MyElixirRayTracer.Color
+  alias MyElixirRayTracer.PointLight
+  alias MyElixirRayTracer.Tuple, as: RTTuple
 
   @pubsub RayTracerWeb.PubSub
 
@@ -11,13 +13,15 @@ defmodule RayTracerWebWeb.TracerLive do
   def sizes, do: @sizes
 
   @default_material %{color: "#ff33ff", ambient: 0.1, diffuse: 0.9, specular: 0.9, shininess: 100}
+  @default_light %{color: "#ffffff", x: -400, y: 400, z: -400}
 
   def mount(_params, _session, socket) do
     topic = "raytracer:render:#{socket.id}"
     {:ok, assign(socket,
       status: :idle, rows_done: 0, total_ms: nil,
       topic: topic, canvas_w: 300, canvas_h: 300,
-      mat: @default_material
+      mat: @default_material,
+      light: @default_light
     )}
   end
 
@@ -37,11 +41,22 @@ defmodule RayTracerWebWeb.TracerLive do
     {:noreply, assign(socket, mat: mat)}
   end
 
+  def handle_event("set_light", params, socket) do
+    light = %{
+      color: params["color"],
+      x: parse_int(params["x"]),
+      y: parse_int(params["y"]),
+      z: parse_int(params["z"])
+    }
+    {:noreply, assign(socket, light: light)}
+  end
+
   def handle_event("start_trace", _params, socket) do
-    %{topic: topic, canvas_w: w, canvas_h: h, mat: mat} = socket.assigns
+    %{topic: topic, canvas_w: w, canvas_h: h, mat: mat, light: light_params} = socket.assigns
     Phoenix.PubSub.subscribe(@pubsub, topic)
     material = build_material(mat)
-    Task.start(fn -> Raytracer.trace_streaming(topic, @pubsub, w, h, material) end)
+    light = build_light(light_params)
+    Task.start(fn -> Raytracer.trace_streaming(topic, @pubsub, w, h, material, light) end)
     {:noreply,
      socket
      |> assign(status: :tracing, rows_done: 0, total_ms: nil)
@@ -76,6 +91,17 @@ defmodule RayTracerWebWeb.TracerLive do
     {b, _} = Integer.parse(String.slice(hex, 4, 2), 16)
     {r / 255, g / 255, b / 255}
   end
+
+  defp build_light(%{color: hex, x: x, y: y, z: z}) do
+    {r, g, b} = hex_to_rgb(hex)
+    PointLight.point_light(RTTuple.point(x, y, z), Color.color(r, g, b))
+  end
+
+  defp parse_int(s) when is_binary(s) do
+    {i, _} = Integer.parse(s)
+    i
+  end
+  defp parse_int(n) when is_integer(n), do: n
 
   defp parse_float(s) when is_binary(s) do
     case Float.parse(s) do
@@ -131,6 +157,25 @@ defmodule RayTracerWebWeb.TracerLive do
         <label>Shininess</label>
         <input type="range" name="shininess" min="1" max="300" step="1" value={@mat.shininess} disabled={@status == :tracing} />
         <span style="font-size: 11px; color: #888; width: 36px; text-align: right; display: inline-block;"><%= @mat.shininess %></span>
+      </form>
+
+      <%!-- Light parameters --%>
+      <form phx-change="set_light" style="margin-bottom: 12px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 4px 12px; max-width: 420px;">
+        <label>Light color</label>
+        <input type="color" name="color" value={@light.color} disabled={@status == :tracing} style="width: 48px; height: 24px; padding: 0; border: none; cursor: pointer;" />
+        <span></span>
+
+        <label>Light X</label>
+        <input type="range" name="x" min="-600" max="600" step="10" value={@light.x} disabled={@status == :tracing} />
+        <span style="font-size: 11px; color: #888; width: 36px; text-align: right; display: inline-block;"><%= @light.x %></span>
+
+        <label>Light Y</label>
+        <input type="range" name="y" min="-600" max="600" step="10" value={@light.y} disabled={@status == :tracing} />
+        <span style="font-size: 11px; color: #888; width: 36px; text-align: right; display: inline-block;"><%= @light.y %></span>
+
+        <label>Light Z</label>
+        <input type="range" name="z" min="-600" max="600" step="10" value={@light.z} disabled={@status == :tracing} />
+        <span style="font-size: 11px; color: #888; width: 36px; text-align: right; display: inline-block;"><%= @light.z %></span>
       </form>
 
       <%!-- Start button --%>
