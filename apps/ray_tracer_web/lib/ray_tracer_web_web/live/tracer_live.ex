@@ -196,11 +196,11 @@ defmodule RayTracerWebWeb.TracerLive do
         arr_z  = arrowhead.(azx, azy, 0.866, -0.5)   # +Z: upper-right (away)
       %>
 
-      <%!-- Main two-column layout --%>
-      <div style="display: flex; gap: 32px; align-items: flex-start;">
+      <%!-- Responsive layout: settings / diagrams / image wrap as needed --%>
+      <div style="display: flex; flex-wrap: wrap; gap: 24px 32px; align-items: flex-start;">
 
-        <%!-- LEFT: all controls + buttons --%>
-        <div style="flex-shrink: 0; width: 340px;">
+        <%!-- BLOCK: all controls + buttons --%>
+        <div style="flex: 0 1 340px; min-width: 300px;">
 
           <%!-- Canvas size (image resolution) --%>
           <div style="margin-bottom: 12px;">
@@ -295,11 +295,11 @@ defmodule RayTracerWebWeb.TracerLive do
 
         </div>
 
-        <%!-- RIGHT: diagrams side by side + rendered canvas below --%>
-        <div>
+        <%!-- BLOCK: scene diagrams --%>
+        <div style="flex: 1 1 536px; min-width: 260px; max-width: 536px;">
 
-          <%!-- Diagrams 2x2 grid: TL=3D, TR=X-Y, BL=X-Z, BR=empty --%>
-          <div style="display: grid; grid-template-columns: 260px 260px; gap: 16px; margin-bottom: 16px;">
+          <%!-- Diagrams 2x2 grid: TL=3D, TR=X-Y, BL=X-Z, BR=empty (collapses to 1 col when narrow) --%>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 260px)); justify-content: start; gap: 16px;">
 
             <%!-- Top-left: isometric 3D --%>
             <div>
@@ -409,13 +409,17 @@ defmodule RayTracerWebWeb.TracerLive do
 
           </div>
 
-          <%!-- Rendered canvas --%>
+        </div>
+
+        <%!-- BLOCK: rendered image --%>
+        <div style="flex: 1 1 auto; min-width: 0;">
+          <div style="font-size: 10px; color: #555; margin-bottom: 4px;">rendered image</div>
           <canvas id="ray-canvas" width={@canvas_w} height={@canvas_h}
-                  style="display: block; background: #000; border: 1px solid #333;"
+                  style="display: block; background: #000; border: 1px solid #333; max-width: 100%; height: auto;"
                   phx-hook="RayCanvas" phx-update="ignore">
           </canvas>
-
         </div>
+
       </div>
     </div>
     """
