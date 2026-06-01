@@ -11,6 +11,8 @@ defmodule RayTracerWeb.Application do
       RayTracerWebWeb.Telemetry,
       {DNSCluster, query: Application.get_env(:ray_tracer_web, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: RayTracerWeb.PubSub},
+      # Per-IP render rate limiter (ETS backend, sweeps expired buckets hourly)
+      {RayTracerWeb.RateLimit, [clean_period: :timer.minutes(60)]},
       # Start a worker by calling: RayTracerWeb.Worker.start_link(arg)
       # {RayTracerWeb.Worker, arg},
       # Start to serve requests, typically the last entry

@@ -12,8 +12,8 @@ defmodule RayTracerWebWeb.Endpoint do
   ]
 
   socket "/live", Phoenix.LiveView.Socket,
-    websocket: [connect_info: [session: @session_options]],
-    longpoll: [connect_info: [session: @session_options]]
+    websocket: [connect_info: [:peer_data, :x_headers, session: @session_options]],
+    longpoll: [connect_info: [:peer_data, :x_headers, session: @session_options]]
 
   # Serve Phoenix and LiveView JS UMD bundles from their hex packages at /vendor/
   plug Plug.Static, at: "/vendor", from: {:phoenix, "priv/static"}

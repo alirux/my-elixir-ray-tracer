@@ -17,6 +17,10 @@ defmodule RayTracerWebWeb.TracerLive do
   @default_eye %{x: 0, y: 0, z: -400}
   @default_sphere_r 100
 
+  # Rate limit: max renders per IP per time window
+  @rate_limit 20
+  @rate_window_ms 60_000
+
   def mount(_params, _session, socket) do
     topic = "raytracer:render:#{socket.id}"
     {:ok, assign(socket,
@@ -26,7 +30,9 @@ defmodule RayTracerWebWeb.TracerLive do
       light: @default_light,
       eye: @default_eye,
       sphere_r: @default_sphere_r,
-      cores: System.schedulers_online()
+      cores: System.schedulers_online(),
+      client_ip: client_ip(socket),
+      retry_after: nil
     )}
   end
 
@@ -70,16 +76,22 @@ defmodule RayTracerWebWeb.TracerLive do
   end
 
   def handle_event("start_trace", _params, socket) do
-    %{topic: topic, canvas_w: w, canvas_h: h, mat: mat, light: light_params, eye: eye_params, sphere_r: sphere_r} = socket.assigns
-    Phoenix.PubSub.subscribe(@pubsub, topic)
-    material = build_material(mat)
-    light = build_light(light_params)
-    eye_position = RTTuple.point(eye_params.x, eye_params.y, eye_params.z)
-    Task.start(fn -> Raytracer.trace_streaming(topic, @pubsub, w, h, material, light, eye_position, sphere_r) end)
-    {:noreply,
-     socket
-     |> assign(status: :tracing, rows_done: 0, total_ms: nil)
-     |> push_event("resize_canvas", %{width: w, height: h})}
+    case RayTracerWeb.RateLimit.hit("render:#{socket.assigns.client_ip}", @rate_window_ms, @rate_limit) do
+      {:allow, _count} ->
+        %{topic: topic, canvas_w: w, canvas_h: h, mat: mat, light: light_params, eye: eye_params, sphere_r: sphere_r} = socket.assigns
+        Phoenix.PubSub.subscribe(@pubsub, topic)
+        material = build_material(mat)
+        light = build_light(light_params)
+        eye_position = RTTuple.point(eye_params.x, eye_params.y, eye_params.z)
+        Task.start(fn -> Raytracer.trace_streaming(topic, @pubsub, w, h, material, light, eye_position, sphere_r) end)
+        {:noreply,
+         socket
+         |> assign(status: :tracing, rows_done: 0, total_ms: nil, retry_after: nil)
+         |> push_event("resize_canvas", %{width: w, height: h})}
+
+      {:deny, retry_after_ms} ->
+        {:noreply, assign(socket, status: :rate_limited, retry_after: ceil(retry_after_ms / 1000))}
+    end
   end
 
   def handle_info({:row_ready, row_data}, socket) do
@@ -96,6 +108,33 @@ defmodule RayTracerWebWeb.TracerLive do
 
   def terminate(_reason, socket) do
     Phoenix.PubSub.unsubscribe(@pubsub, socket.assigns.topic)
+  end
+
+  # Determine the client IP, honoring X-Forwarded-For (set by the Gigalixir proxy)
+  # and falling back to the socket peer address. Returns "unknown" when disconnected.
+  defp client_ip(socket) do
+    forwarded =
+      case get_connect_info(socket, :x_headers) do
+        headers when is_list(headers) ->
+          case List.keyfind(headers, "x-forwarded-for", 0) do
+            {_, value} -> value |> String.split(",") |> List.first() |> String.trim()
+            nil -> nil
+          end
+
+        _ ->
+          nil
+      end
+
+    cond do
+      is_binary(forwarded) and forwarded != "" ->
+        forwarded
+
+      true ->
+        case get_connect_info(socket, :peer_data) do
+          %{address: address} -> address |> :inet.ntoa() |> to_string()
+          _ -> "unknown"
+        end
+    end
   end
 
   # Parse hex color "#RRGGBB" into a Material Color struct
@@ -291,6 +330,11 @@ defmodule RayTracerWebWeb.TracerLive do
                 · Rendered in <%= @total_ms %>ms
               <% end %>
             </div>
+            <%= if @status == :rate_limited do %>
+              <div style="margin-top: 8px; font-size: 12px; color: #e66;">
+                Rate limit reached. Try again in <%= @retry_after %>s.
+              </div>
+            <% end %>
           </div>
 
         </div>
