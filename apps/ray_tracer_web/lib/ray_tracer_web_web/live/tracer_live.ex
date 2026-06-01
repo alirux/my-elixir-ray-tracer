@@ -15,6 +15,7 @@ defmodule RayTracerWebWeb.TracerLive do
   @default_material %{color: "#ff33ff", ambient: 0.1, diffuse: 0.9, specular: 0.9, shininess: 100}
   @default_light %{color: "#ffffff", x: -400, y: 400, z: -400}
   @default_eye %{x: 0, y: 0, z: -400}
+  @default_sphere_r 100
 
   def mount(_params, _session, socket) do
     topic = "raytracer:render:#{socket.id}"
@@ -24,6 +25,7 @@ defmodule RayTracerWebWeb.TracerLive do
       mat: @default_material,
       light: @default_light,
       eye: @default_eye,
+      sphere_r: @default_sphere_r,
       cores: System.schedulers_online()
     )}
   end
@@ -45,7 +47,11 @@ defmodule RayTracerWebWeb.TracerLive do
   end
 
   def handle_event("reset", _params, socket) do
-    {:noreply, assign(socket, mat: @default_material, light: @default_light, eye: @default_eye)}
+    {:noreply, assign(socket, mat: @default_material, light: @default_light, eye: @default_eye, sphere_r: @default_sphere_r)}
+  end
+
+  def handle_event("set_sphere", %{"radius" => r}, socket) do
+    {:noreply, assign(socket, sphere_r: parse_int(r))}
   end
 
   def handle_event("set_eye", params, socket) do
@@ -64,12 +70,12 @@ defmodule RayTracerWebWeb.TracerLive do
   end
 
   def handle_event("start_trace", _params, socket) do
-    %{topic: topic, canvas_w: w, canvas_h: h, mat: mat, light: light_params, eye: eye_params} = socket.assigns
+    %{topic: topic, canvas_w: w, canvas_h: h, mat: mat, light: light_params, eye: eye_params, sphere_r: sphere_r} = socket.assigns
     Phoenix.PubSub.subscribe(@pubsub, topic)
     material = build_material(mat)
     light = build_light(light_params)
     eye_position = RTTuple.point(eye_params.x, eye_params.y, eye_params.z)
-    Task.start(fn -> Raytracer.trace_streaming(topic, @pubsub, w, h, material, light, eye_position) end)
+    Task.start(fn -> Raytracer.trace_streaming(topic, @pubsub, w, h, material, light, eye_position, sphere_r) end)
     {:noreply,
      socket
      |> assign(status: :tracing, rows_done: 0, total_ms: nil)
@@ -139,7 +145,7 @@ defmodule RayTracerWebWeb.TracerLive do
       <%
         s = 0.2
         clamp = fn v, lo, hi -> min(hi, max(lo, round(v))) end
-        sr = max(10, round(@canvas_w / 15))
+        sr = max(4, round(@sphere_r * s))
         # Top view (X-Z)
         xz_ox = 130; xz_oz = 44
         ex_xz = clamp.(xz_ox + @eye.x   * s, 8, 252)
@@ -163,7 +169,7 @@ defmodule RayTracerWebWeb.TracerLive do
           {clamp.(iso_ox + (x + z) * 0.866 * s3, 8, 252),
            clamp.(iso_oy + (x - z) * 0.5 * s3 - y * s3, 8, 232)}
         end
-        iso_sr = max(8, round(@canvas_w / 3 * s3))
+        iso_sr = max(4, round(@sphere_r * s3))
         {e3x, e3y} = iso.(@eye.x, @eye.y, @eye.z)
         {l3x, l3y} = iso.(@light.x, @light.y, @light.z)
         # Coordinate projections (drop lines): ground point + X/Z axis feet
@@ -196,8 +202,9 @@ defmodule RayTracerWebWeb.TracerLive do
         <%!-- LEFT: all controls + buttons --%>
         <div style="flex-shrink: 0; width: 340px;">
 
-          <%!-- Canvas size --%>
+          <%!-- Canvas size (image resolution) --%>
           <div style="margin-bottom: 12px;">
+            <span style="margin-right: 12px; color: #888;">Canvas:</span>
             <%= for {w, h} <- sizes() do %>
               <label style="margin-right: 16px; cursor: pointer;">
                 <input type="radio" name="size" value={"#{w}x#{h}"}
@@ -208,6 +215,13 @@ defmodule RayTracerWebWeb.TracerLive do
               </label>
             <% end %>
           </div>
+
+          <%!-- Sphere radius (world units, independent of canvas) --%>
+          <form phx-change="set_sphere" style="margin-bottom: 12px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 4px 12px;">
+            <label>Sphere</label>
+            <input type="range" name="radius" min="20" max="280" step="10" value={@sphere_r} disabled={@status == :tracing} />
+            <span style="font-size: 11px; color: #888; width: 36px; text-align: right; display: inline-block;"><%= @sphere_r %></span>
+          </form>
 
           <%!-- Material --%>
           <form phx-change="set_material" style="margin-bottom: 12px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 4px 12px;">
