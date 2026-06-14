@@ -7,6 +7,7 @@ defmodule MyElixirRayTracer.World do
   alias MyElixirRayTracer.Sphere
   alias MyElixirRayTracer.Matrix
   alias MyElixirRayTracer.Material
+  alias MyElixirRayTracer.Ray
 
   defstruct light: nil, objects: []
 
@@ -34,8 +35,10 @@ defmodule MyElixirRayTracer.World do
 
   Returns the intersections found, sorted by time ascending
   """
-  def world_intersect(_world, _ray) do
-    []
+  def world_intersect(world, ray) do
+    world.objects
+    |> Enum.flat_map(fn object -> Ray.ray_intersect(object, ray) end)
+    |> Enum.sort_by(fn i -> i.time end)
   end
 
 end

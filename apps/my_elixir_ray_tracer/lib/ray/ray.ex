@@ -20,8 +20,7 @@ defmodule MyElixirRayTracer.Ray do
 
   @doc """
   Find the intersections between a ray and a sphere.
-  They can be zero (no intersections), two with the same value (tangent) or two distinct values.
-  The result of the function is a map with integer keys (0, 1) and intersection struct as values.
+  Returns an empty list (no intersection), or a list of two Intersection structs (tangent or two distinct hits).
   """
   def ray_intersect(sphere, ray) do
     ray = ray_transform(ray, sphere.inverse_transform)
