@@ -465,6 +465,11 @@ defmodule RayTracerWebWeb.TracerLive do
         </div>
 
       </div>
+
+      <%!-- Footer --%>
+      <div style="margin-top: 32px; padding-top: 12px; border-top: 1px solid #2a2a2a; font-size: 12px; color: #888;">
+        <a href={~p"/privacy"} class="gh-link" style="margin-left: 0;">Privacy Policy</a>
+      </div>
     </div>
     """
   end

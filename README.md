@@ -51,6 +51,18 @@ The page is laid out in responsive blocks that reflow as the window narrows:
 
 Renders are rate-limited to 20 per minute per client IP.
 
+### Analytics and privacy
+
+Page views are counted with [GoatCounter](https://www.goatcounter.com/) (site code `lirux-mrt`).
+It sets no cookies and collects no personal data. The script is loaded in
+`lib/ray_tracer_web_web/components/layouts/root.html.heex`, and the router's Content Security
+Policy allows `gc.zgo.at` (the script) plus `lirux-mrt.goatcounter.com` (the beacon, sent
+either with `sendBeacon` or as an image pixel).
+
+The privacy policy is served at `/privacy` by `PageController.privacy/2`, with the text in
+`lib/ray_tracer_web_web/controllers/page_html/privacy.html.heex`. Contact for privacy
+questions: privacy@codingful.com.
+
 ## Run the tests
 
 ```bash

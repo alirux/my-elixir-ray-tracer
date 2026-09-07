@@ -48,6 +48,8 @@ The rendering pipeline: `Raytracer` → `Ray` → `Intersection` → `Material`/
 - `RayCanvas` JS hook (`priv/static/assets/js/app.js`) — draws each row using `putImageData` on an HTML5 canvas
 - Phoenix and LiveView JS are served as UMD bundles from their hex packages via `Plug.Static` at `/vendor/`; no asset build step (esbuild not used)
 - PubSub server is `RayTracerWeb.PubSub` (owned by the web app); `trace_streaming/2` accepts it as a parameter so the core app has no web dependency
+- `PageController` — plain (non-LiveView) pages; currently only `/privacy`, rendered from `controllers/page_html/privacy.html.heex` via `RayTracerWebWeb.PageHTML`
+- GoatCounter analytics (site code `lirux-mrt`) is loaded in `root.html.heex`; the router CSP must keep `https://gc.zgo.at` in `script-src` and `https://lirux-mrt.goatcounter.com` in both `img-src` and `connect-src` (count.js beacons via `sendBeacon`, falling back to an image pixel)
 
 ## Deployment
 

@@ -7,9 +7,11 @@ defmodule RayTracerWebWeb.Router do
     plug :fetch_live_flash
     plug :put_root_layout, html: {RayTracerWebWeb.Layouts, :root}
     plug :protect_from_forgery
+    # GoatCounter: count.js is loaded from gc.zgo.at and beacons to the
+    # lirux-mrt subdomain via sendBeacon (connect-src) or an image pixel (img-src).
     plug :put_secure_browser_headers, %{
       "content-security-policy" =>
-        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ws: wss:",
+        "default-src 'self'; script-src 'self' https://gc.zgo.at; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://lirux-mrt.goatcounter.com; connect-src 'self' ws: wss: https://lirux-mrt.goatcounter.com",
       "referrer-policy" => "strict-origin-when-cross-origin",
       "strict-transport-security" => "max-age=63072000; includeSubDomains"
     }
@@ -23,6 +25,7 @@ defmodule RayTracerWebWeb.Router do
     pipe_through :browser
 
     live "/", TracerLive
+    get "/privacy", PageController, :privacy
   end
 
   # Other scopes may use custom stacks.
