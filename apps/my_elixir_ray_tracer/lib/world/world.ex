@@ -42,3 +42,19 @@ defmodule MyElixirRayTracer.World do
   end
 
 end
+
+
+defmodule MyElixirRayTracer.Computations do
+
+  alias MyElixirRayTracer.Computations
+  alias MyElixirRayTracer.Ray
+  alias MyElixirRayTracer.Tuple, as: RTTuple
+  alias MyElixirRayTracer.Sphere
+
+  defstruct [:t, :object, :point, :eyev, :normalv]
+
+  def prepare_computations(intersection, ray) do
+    point = Ray.ray_position(ray, intersection.time)
+    %Computations { t: intersection.time, object: intersection.object, point: point, eyev: RTTuple.negate(ray.direction), normalv: Sphere.sphere_normal_at(intersection.object, point) }
+  end
+end

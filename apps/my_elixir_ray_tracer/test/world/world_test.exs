@@ -11,6 +11,8 @@ defmodule MyElixirRayTracerTest.World do
   alias MyElixirRayTracer.Material
   alias MyElixirRayTracer.Ray
   alias MyElixirRayTracer.Tuple
+  alias MyElixirRayTracer.Intersection
+  alias MyElixirRayTracer.Computations
 
   test "The default world" do
     def_world = World.default_world()
@@ -34,5 +36,18 @@ defmodule MyElixirRayTracerTest.World do
     assert Enum.at(intersections, 1).time == 4.5
     assert Enum.at(intersections, 2).time == 5.5
     assert Enum.at(intersections, 3).time == 6
+  end
+
+  test "Precomputing the state of an intersection" do
+    ray = Ray.ray(Tuple.point(0, 0, -5), Tuple.vector(0, 0, 1))
+    shape = Sphere.sphere()
+    i = Intersection.intersection(4, shape)
+    comps = Computations.prepare_computations(i, ray)
+
+    assert comps.t == i.time
+    assert comps.object == shape
+    assert comps.point == Tuple.point(0, 0, -1)
+    assert comps.eyev == Tuple.vector(0, 0, -1)
+    assert comps.normalv == Tuple.vector(0, 0, -1)
   end
 end
